@@ -1,0 +1,299 @@
+/* =====================================================================
+   EcoCart mobile: SHOP / CATEGORY LISTING (area "shop")
+   Loads after skin.css. Pages: /shop/, /shop/page/N/, /product-category/*
+   Scope: body.woocommerce.archive (product archives only; blog archives
+   have no .woocommerce class). Phone rules live in max-width:767px; the
+   filter drawer rules cover the theme's drawer range (max-width:1199.98px).
+   ===================================================================== */
+
+/* ---- all widths: card title used the theme's Jost font, not the skin font ---- */
+body.woocommerce.archive .shop-wrapper .products .product-title,
+body.woocommerce.archive .shop-wrapper .products .product-title a{font-family:var(--theme-body-font)!important}
+
+/* ---- filter drawer (theme shows it as an off-canvas panel below 1200px) ---- */
+@media (max-width:1199.98px){
+  body.woocommerce.archive #sidebar.filtered-sidebar{
+    width:min(90vw,400px)!important;max-width:min(90vw,400px)!important;flex:0 0 auto!important;
+    background:#fff!important;border-radius:0 22px 22px 0;overflow:hidden}
+  body.woocommerce.archive.filter-sidebar-active #sidebar.filtered-sidebar{box-shadow:24px 0 60px -30px rgba(6,18,12,.45)}
+  /* theia-sticky-sidebar pins the inner box at the closed drawer's x (-width) on tablets; keep it in flow */
+  body.woocommerce.archive #sidebar.filtered-sidebar .theiaStickySidebar{
+    position:relative!important;left:auto!important;top:auto!important;transform:none!important;width:100%!important;height:100%!important;padding:0!important}
+  body.woocommerce.archive #sidebar.filtered-sidebar .filter-sidebar-header{
+    padding:10px 10px 10px 20px!important;min-height:64px;border-bottom:1px solid var(--ec-line);background:#fff}
+  body.woocommerce.archive #sidebar.filtered-sidebar .filter-sidebar-header .entry-title{font-size:19px!important;font-weight:750!important;letter-spacing:-.02em;margin:0}
+  body.woocommerce.archive #sidebar.filtered-sidebar .site-close{
+    width:44px!important;height:44px!important;border-radius:999px!important;background:var(--ec-cream)!important;color:var(--ec-ink)!important;
+    display:flex!important;align-items:center;justify-content:center;cursor:pointer}
+  body.woocommerce.archive #sidebar.filtered-sidebar .site-close svg{width:16px;height:16px}
+  body.woocommerce.archive #sidebar.filtered-sidebar .filter-sidebar-header+.site-scroll{padding:0 20px!important;height:calc(100% - 64px)!important}
+  body.woocommerce.archive #sidebar .filter-sidebar-body{padding:4px 0 calc(40px + env(safe-area-inset-bottom))!important}
+  body.woocommerce.archive #sidebar .filter-sidebar-body .widget{margin:0!important;padding:18px 0!important;border-bottom:1px solid var(--ec-line);border-radius:0!important;background:transparent!important}
+  body.woocommerce.archive #sidebar .filter-sidebar-body .widget:last-child{border-bottom:0}
+  body.woocommerce.archive #sidebar .widget .widget-title{font-size:15px!important;font-weight:750!important;color:var(--ec-ink)!important;margin:0 0 12px!important;text-transform:none!important;letter-spacing:-.01em}
+
+  /* colour + size lists become wrapped chips */
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list{display:flex!important;flex-wrap:wrap;gap:8px;margin:0!important;padding:0!important}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list>li{margin:0!important;padding:0!important;border:0!important;list-style:none}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list>li>div{
+    position:relative;display:flex!important;align-items:center;gap:7px;min-height:44px;margin:0!important;padding:0 14px!important;
+    border:1px solid rgba(13,35,24,.16);border-radius:999px;background:#fff;line-height:1}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list>li>div>a{
+    position:static!important;font-size:14.5px!important;font-weight:550;color:var(--ec-ink)!important;text-transform:capitalize;text-decoration:none!important;padding:0!important;margin:0!important}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list>li>div>a::after{content:"";position:absolute;inset:0;border-radius:999px}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list .count{font-size:12.5px!important;color:var(--ec-mute)!important;height:auto!important;margin:0!important;line-height:1}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list .color-box{position:relative!important;flex:0 0 18px;width:18px!important;height:18px!important;margin:0!important;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list .color-box[style="background-color:;"]{display:none!important}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list .button-box{display:none!important}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list>li.chosen>div{background:var(--ec-forest);border-color:var(--ec-forest)}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list>li.chosen>div>a,
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list>li.chosen .count{color:var(--ec-cream)!important}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list>li.chosen>div>a::before{display:none!important}
+  body.woocommerce.archive #sidebar .woocommerce-widget-layered-nav-list>li.chosen .color-box{box-shadow:0 0 0 2px var(--ec-cream)}
+
+  /* skin.js "Show all" collapse: fade to white inside the drawer, link-style button */
+  body.woocommerce.archive #sidebar .ec-collapsed{max-height:200px}
+  body.woocommerce.archive #sidebar .ec-collapsed::after{background:linear-gradient(rgba(255,255,255,0),#fff)!important}
+  body.woocommerce.archive #sidebar .ec-more{
+    display:inline-flex!important;align-items:center;min-height:44px;margin-top:4px;padding:0 2px!important;background:none!important;border:0!important;
+    color:var(--ec-leaf)!important;font-size:14.5px!important;font-weight:700!important;box-shadow:none!important;text-decoration:underline;text-underline-offset:3px}
+
+  /* price filter */
+  body.woocommerce.archive #sidebar .price_slider_wrapper>.price_slider_amount{display:flex!important;align-items:flex-end;gap:10px}
+  body.woocommerce.archive #sidebar .price_slider_wrapper>.price_slider_amount .min-price{flex:1 1 0;min-width:0}
+  body.woocommerce.archive #sidebar .price_slider_amount .price-placeholder{font-size:13px;color:var(--ec-mute)}
+  body.woocommerce.archive #sidebar .price_slider_amount input{
+    width:100%!important;height:46px!important;font-size:16px!important;border:1px solid rgba(13,35,24,.16)!important;background:#fff!important;border-radius:999px!important;padding:0 16px!important;color:var(--ec-ink)}
+  body.woocommerce.archive #sidebar .price_slider_amount .separator{padding-bottom:12px}
+  body.woocommerce.archive #sidebar .price_slider{margin:24px 0!important;height:4px!important;background:#e3e8df!important;border:0!important}
+  body.woocommerce.archive #sidebar .price_slider .ui-slider-range{background:var(--ec-leaf)!important}
+  body.woocommerce.archive #sidebar .price_slider .ui-slider-handle{width:26px!important;height:26px!important;top:-11px!important;margin:0!important;border-radius:50%!important;background:#fff!important;border:2px solid var(--ec-leaf)!important;box-shadow:0 2px 8px rgba(6,18,12,.2)}
+  body.woocommerce.archive #sidebar .price_slider_bottom{display:flex!important;align-items:center;justify-content:space-between;gap:10px}
+  body.woocommerce.archive #sidebar .price_slider_bottom>.price_slider_amount{display:block!important;flex:1 1 auto;padding:0!important;margin:0!important;text-align:left}
+  body.woocommerce.archive #sidebar .price_slider_bottom .price_label{font-size:14px!important;color:var(--ec-mute)}
+  body.woocommerce.archive #sidebar .price_slider_bottom .button{
+    min-height:44px!important;padding:0 22px!important;background:var(--ec-leaf)!important;border:0!important;box-shadow:none!important;color:#fff!important;
+    font-size:14.5px!important;line-height:44px!important;height:44px!important;text-transform:none!important;letter-spacing:0!important}
+
+  /* "Product Status": In stock / On sale as chips */
+  body.woocommerce.archive #sidebar .widget_product_status ul{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0}
+  body.woocommerce.archive #sidebar .widget_product_status li{margin:0!important;list-style:none}
+  body.woocommerce.archive #sidebar .widget_product_status li a{
+    display:inline-flex!important;align-items:center;min-height:44px;padding:0 16px!important;border:1px solid rgba(13,35,24,.16);border-radius:999px;background:#fff;color:var(--ec-ink)!important;text-decoration:none!important}
+  body.woocommerce.archive #sidebar .widget_product_status li a input{display:none!important}
+  body.woocommerce.archive #sidebar .widget_product_status li a label{margin:0!important;font-size:14.5px!important;font-weight:550;cursor:pointer;padding:0!important}
+  body.woocommerce.archive #sidebar .widget_product_status li a label span{display:none!important}
+  body.woocommerce.archive #sidebar .widget_product_status li a:has(input:checked){background:var(--ec-forest);border-color:var(--ec-forest);color:var(--ec-cream)!important}
+
+  /* dim everything (bottom bar too) while the drawer is open; WhatsApp bubble must not float over the drawer */
+  /* touch: the theme's hover-gallery swaps photos on touchstart while scrolling and can eat the first tap on iOS */
+  body.woocommerce.archive .shop-wrapper .products .product .product-thumbnail-gallery,
+  body.woocommerce.archive .shop-wrapper .products .product .hover-gallery-dots{display:none!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-main-image.disabled{opacity:1!important}
+  /* theme sets pointer-events:none on the card cart button until :hover, so on touch the first tap did nothing */
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons,
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons a{pointer-events:auto!important}
+
+  body.woocommerce.archive .mobile-filter-overlay{z-index:100010!important;background:#06120c!important}
+  body.woocommerce.archive.filter-sidebar-active .qlwapp__container{display:none!important}
+}
+
+/* ===================================================================== */
+@media (max-width:767px){
+
+  /* ---------- breadcrumb + page title ---------- */
+  body.woocommerce.archive .woocommerce-breadcrumb{margin:0!important}
+  body.woocommerce.archive .woocommerce-breadcrumb ul{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;white-space:nowrap;gap:2px!important}
+  body.woocommerce.archive .woocommerce-breadcrumb ul::-webkit-scrollbar{display:none}
+  body.woocommerce.archive .woocommerce-breadcrumb li{font-size:13px!important;min-height:44px;flex:0 0 auto}
+  body.woocommerce.archive .woocommerce-breadcrumb li a{display:inline-flex;align-items:center;min-height:44px;font-size:13px!important}
+  body.woocommerce.archive .woocommerce-page-header{margin:0 0 4px!important}
+  body.woocommerce.archive .woocommerce-page-header .woocommerce-page-title{font-size:28px!important;line-height:1.1!important;margin:0 0 14px!important}
+
+  /* ---------- "Product Categories" pills: one swipeable row ---------- */
+  body.woocommerce.archive .woocommerce-page-header .woocommerce-sub-categories{
+    display:block!important;position:relative;margin:0 -15px 6px!important;max-width:none!important}
+  body.woocommerce.archive .woocommerce-sub-categories>span{
+    position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  body.woocommerce.archive .woocommerce-sub-categories .widget-checkbox-list>ul{
+    display:flex!important;flex-wrap:nowrap!important;gap:8px!important;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scroll-padding-inline:15px;scrollbar-width:none;padding:2px 15px 6px!important;margin:0!important}
+  body.woocommerce.archive .woocommerce-sub-categories .widget-checkbox-list>ul::-webkit-scrollbar{display:none}
+  body.woocommerce.archive .woocommerce-sub-categories .widget-checkbox-list>ul>li{flex:0 0 auto;margin:0!important;scroll-snap-align:start}
+  body.woocommerce.archive .woocommerce-sub-categories .widget-checkbox-list>ul>li>a{
+    min-height:44px;padding:0 16px!important;border:1px solid rgba(13,35,24,.14)!important;border-radius:999px!important;background:#fff;
+    color:var(--ec-ink)!important;font-size:14px!important;font-weight:600!important;white-space:nowrap;text-decoration:none!important;box-shadow:0 1px 0 rgba(13,35,24,.03)}
+  body.woocommerce.archive .woocommerce-sub-categories .widget-checkbox-list>ul>li>a input{display:none!important}
+  body.woocommerce.archive .woocommerce-sub-categories .widget-checkbox-list>ul>li>a label{margin:0!important;padding:0!important;cursor:pointer;color:inherit!important;font:inherit!important}
+  body.woocommerce.archive .woocommerce-sub-categories .widget-checkbox-list>ul>li>a label span{display:none!important}
+  body.woocommerce.archive .woocommerce-sub-categories .widget-checkbox-list>ul>li>a:has(input:checked){
+    background:var(--ec-forest)!important;border-color:var(--ec-forest)!important;color:var(--ec-cream)!important}
+  /* current category first so it is always in view */
+  body.woocommerce.archive .woocommerce-sub-categories .widget-checkbox-list>ul>li:has(>a input:checked){order:-1}
+  /* right-edge fade hints that the row scrolls */
+  body.woocommerce.archive .woocommerce-sub-categories .widget-body{position:relative}
+  body.woocommerce.archive .woocommerce-sub-categories .widget-body::after{
+    content:"";position:absolute;top:0;right:0;bottom:6px;width:32px;pointer-events:none;background:linear-gradient(90deg,rgba(250,248,242,0),var(--ec-bg))}
+
+  /* ---------- toolbar: Filter pill + sort select + result count ---------- */
+  body.woocommerce.archive .before-shop-loop{
+    display:flex!important;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:8px 0 14px!important;padding:0!important;border:0!important}
+  body.woocommerce.archive .before-shop-loop .filter-button{margin:0!important;flex:0 0 auto}
+  body.woocommerce.archive .before-shop-loop .filter-button a{
+    min-height:44px;padding:0 18px 0 15px;gap:8px;border-radius:999px;background:var(--ec-forest);color:var(--ec-cream)!important;text-decoration:none!important}
+  body.woocommerce.archive .before-shop-loop .filter-button a i{margin:0!important;font-size:17px!important;color:var(--ec-lime)}
+  body.woocommerce.archive .before-shop-loop .filter-button a span{font-size:15px;font-weight:650}
+  body.woocommerce.archive .before-shop-loop .sorting-products{flex:1 1 0;min-width:0;justify-content:flex-end;margin:0!important}
+  body.woocommerce.archive .before-shop-loop .sorting-products>span{display:none!important}
+  body.woocommerce.archive .before-shop-loop .sorting-products form{width:100%;max-width:230px;margin:0!important}
+  body.woocommerce.archive .before-shop-loop .sorting-products select{
+    width:100%!important;max-width:none!important;height:44px!important;font-size:16px!important;font-weight:550!important;color:var(--ec-ink)!important;
+    padding:0 38px 0 16px!important;border:1px solid rgba(13,35,24,.16)!important;border-radius:999px!important;background-color:#fff!important;
+    background-position:calc(100% - 14px) 50%!important;text-overflow:ellipsis}
+  body.woocommerce.archive .before-shop-loop .woocommerce-result-count{
+    display:block!important;order:5;flex:1 0 100%;margin:2px 0 0!important;font-size:13px!important;color:var(--ec-mute)!important}
+  body.woocommerce.archive .before-shop-loop .per-page-products,
+  body.woocommerce.archive .before-shop-loop .product-views-buttons{display:none!important}
+
+  /* active-filter chips ("Clear filters", "Black", "Min ₹1.00") */
+  body.woocommerce.archive ul.remove-filter{
+    display:flex!important;flex-wrap:nowrap;gap:8px;overflow-x:auto;scrollbar-width:none;margin:-4px -15px 14px!important;padding:0 15px!important;list-style:none}
+  body.woocommerce.archive ul.remove-filter::-webkit-scrollbar{display:none}
+  body.woocommerce.archive ul.remove-filter::before,body.woocommerce.archive ul.remove-filter::after{display:none!important}
+  body.woocommerce.archive ul.remove-filter li{flex:0 0 auto;float:none!important;margin:0!important}
+  body.woocommerce.archive ul.remove-filter li a.remove-filter-element{
+    position:relative;display:inline-flex!important;align-items:center;min-height:44px;padding:0 15px 0 32px!important;border-radius:999px;background:var(--ec-cream);
+    border:1px solid rgba(13,35,24,.12);color:var(--ec-ink)!important;font-size:14px!important;font-weight:600!important;letter-spacing:0!important;white-space:nowrap;text-decoration:none!important}
+  body.woocommerce.archive ul.remove-filter li a.remove-filter-element::before,
+  body.woocommerce.archive ul.remove-filter li a.remove-filter-element::after{left:14px!important;top:calc(50% - 1px)!important;width:11px!important;background-color:currentColor!important}
+  body.woocommerce.archive ul.remove-filter li a.remove-filter-element.clear-all{background:transparent;border-color:transparent;color:var(--ec-leaf)!important;padding:0 8px 0 26px!important}
+  body.woocommerce.archive ul.remove-filter li a.remove-filter-element.clear-all::before,
+  body.woocommerce.archive ul.remove-filter li a.remove-filter-element.clear-all::after{left:8px!important}
+
+  /* ---------- product grid: 2 even columns ---------- */
+  body.woocommerce.archive .shop-wrapper .products.grid-column{
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px 10px!important;margin:0!important}
+  body.woocommerce.archive .shop-wrapper .products.grid-column>.product{
+    width:auto!important;max-width:none!important;flex:none!important;margin:0!important;padding:0!important;min-width:0}
+
+  /* card shell */
+  body.woocommerce.archive .shop-wrapper .products .product .product-wrapper{
+    display:flex!important;flex-direction:column;height:100%;padding:6px 6px 8px!important;border-radius:18px!important;
+    transform:none!important;box-shadow:0 1px 2px rgba(6,18,12,.04)!important;transition:none}
+  body.woocommerce.archive .shop-wrapper .products .product .product-inner{
+    position:relative;display:flex!important;flex-direction:column;flex:1 1 auto;height:auto!important}
+  /* the image wrapper dissolves so the cart button can sit under the text */
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-wrapper{display:contents!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-thumbnail{
+    order:0;position:relative;display:block!important;aspect-ratio:3/4;width:100%;overflow:hidden;border-radius:13px;background:#eef0e8}
+  body.woocommerce.archive .shop-wrapper .products .product .product-main-image{position:absolute!important;inset:0;height:100%!important;opacity:1!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-main-image img{
+    display:block;width:100%!important;height:100%!important;object-fit:cover;transform:none!important}
+
+  /* sale badge: small honey pill, top-left of the photo */
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-badges{
+    position:absolute!important;top:8px!important;left:8px!important;right:auto!important;bottom:auto!important;height:auto!important;
+    display:flex!important;flex-direction:column;align-items:flex-start;gap:4px;z-index:3;pointer-events:none}
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-badges .badge{
+    margin:0!important;padding:4px 8px!important;font-size:12px!important;line-height:1!important;font-weight:800!important;height:auto!important;
+    border-radius:999px!important;letter-spacing:0!important;box-shadow:0 2px 6px rgba(26,18,5,.15)}
+
+  /* hover icons: keep only a small wishlist heart (quick view + compare hidden on phones) */
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-buttons{
+    position:absolute!important;top:4px!important;right:4px!important;left:auto!important;width:auto!important;height:auto!important;gap:0!important;
+    opacity:1!important;visibility:visible!important;transform:none!important;z-index:3}
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-buttons .quickview-button,
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-buttons .klbcp-btn,
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-buttons>*:not(.wishlist-button){display:none!important}
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-buttons .wishlist-button{
+    width:44px!important;height:44px!important;display:flex!important;align-items:center;justify-content:center;background:none!important;border:0!important;box-shadow:none!important}
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-buttons .wishlist-button a{
+    width:32px!important;height:32px!important;display:flex!important;align-items:center;justify-content:center;border-radius:999px;
+    background:rgba(255,255,255,.92);box-shadow:0 1px 4px rgba(6,18,12,.16);color:var(--ec-ink)!important;position:relative}
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-buttons .wishlist-button a::before{font-size:16px!important;line-height:1!important;margin:0!important;top:0!important}
+  body.woocommerce.archive .shop-wrapper .products .product .thumbnail-buttons .wishlist-button a::after{content:"";position:absolute;inset:-6px;border-radius:999px}
+
+  /* text block */
+  body.woocommerce.archive .shop-wrapper .products .product .content-wrapper{
+    order:1;display:flex!important;flex-direction:column;flex:1 1 auto;padding:10px 4px 0!important;min-width:0}
+  body.woocommerce.archive .shop-wrapper .products .product .product-title{
+    order:1;font-size:14.5px!important;font-weight:600!important;line-height:1.3!important;letter-spacing:-.01em;
+    display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;
+    height:auto!important;min-height:2.6em;margin:0 0 6px!important;text-transform:none}
+  body.woocommerce.archive .shop-wrapper .products .product .product-title a{text-decoration:none!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-rating{order:2;display:flex!important;align-items:center;gap:4px;margin:0 0 4px!important;height:auto!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-rating .star-rating{font-size:12px!important;margin:0!important;color:var(--ec-honey)!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-rating .star-rating::before{color:rgba(13,35,24,.18)!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-rating .star-rating span::before{color:var(--ec-honey)!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-rating .rating-count{font-size:13px!important;color:var(--ec-mute)!important;margin:0!important;width:auto!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-rating .rating-count .count-text::before{content:"("}
+  body.woocommerce.archive .shop-wrapper .products .product .product-rating .rating-count .count-text::after{content:")"}
+  body.woocommerce.archive .shop-wrapper .products .product .price{
+    order:3;display:flex!important;flex-wrap:wrap;align-items:baseline;gap:0 6px!important;margin:0!important;
+    font-size:15.5px!important;line-height:1.3!important;font-weight:750!important;letter-spacing:-.01em;color:var(--ec-ink)!important}
+  body.woocommerce.archive .shop-wrapper .products .product .price ins{order:-1;font-size:inherit!important;color:var(--ec-ink)!important}
+  body.woocommerce.archive .shop-wrapper .products .product .price del{font-size:13px!important;font-weight:500!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-delivery-time{
+    order:4;margin:4px 0 0!important;font-size:13px!important;line-height:1.3;color:var(--ec-mute)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* "In Stock" on every card is noise; only show when sold out */
+  body.woocommerce.archive .shop-wrapper .products .product .product-inventory.in-stock{display:none!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-inventory{order:5;margin:4px 0 0!important;font-size:13px!important;font-weight:650;line-height:1.3}
+  body.woocommerce.archive .shop-wrapper .products .product .product-inventory.outof-stock{color:#b4331f!important}
+  body.woocommerce.archive .shop-wrapper .products .product.outofstock .product-main-image img{opacity:.55;filter:grayscale(.35)}
+
+  /* cart / options button: out of the photo, full width at the card foot */
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons{
+    order:2;position:static!important;inset:auto!important;display:flex!important;flex-direction:column;gap:4px;width:100%!important;height:auto!important;
+    margin:10px 0 0!important;padding:0!important;opacity:1!important;visibility:visible!important;transform:none!important;overflow:visible!important;background:none!important;
+    pointer-events:auto!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons a.button{
+    width:100%!important;height:44px!important;min-height:44px;margin:0!important;padding:0 10px!important;display:flex!important;align-items:center;justify-content:center;gap:6px;
+    border-radius:999px!important;font-size:14px!important;font-weight:650!important;line-height:1.1!important;letter-spacing:-.005em!important;text-transform:none!important;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;
+    background:#fff!important;color:var(--ec-forest)!important;border:1.5px solid rgba(13,35,24,.22)!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons a.button i{display:none!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons a.button.add_to_cart_button.product_type_simple{
+    background:var(--ec-leaf)!important;border-color:var(--ec-leaf)!important;color:#fff!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons a.button.loading{opacity:.7}
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons a.added_to_cart{
+    display:flex!important;align-items:center;justify-content:center;gap:6px;width:100%!important;height:44px!important;min-height:44px;margin:0!important;padding:0 10px!important;
+    font-size:14px!important;font-weight:650!important;letter-spacing:0!important;text-transform:none!important;text-decoration:none!important;line-height:1!important;
+    color:var(--ec-leaf)!important;background:rgba(31,143,78,.08)!important;border:0!important;border-radius:999px!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons a.added_to_cart::before{margin:0!important;width:auto!important;font-size:14px!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons a.button.add_to_cart_button.product_type_simple.added{background:var(--ec-forest)!important;border-color:var(--ec-forest)!important}
+  /* push the button to the card foot so buttons line up across a row */
+  body.woocommerce.archive .shop-wrapper .products .product .product-buttons{margin-top:auto!important;padding-top:10px!important}
+  body.woocommerce.archive .shop-wrapper .products .product .content-wrapper{flex:0 0 auto}
+  body.woocommerce.archive .shop-wrapper .products .product .product-inner::after{content:none}
+
+  /* sticky :hover after a tap should not zoom or lift */
+  body.woocommerce.archive .shop-wrapper .products .product:hover .product-main-image img{transform:none!important}
+
+  /* ---------- pagination ---------- */
+  body.woocommerce.archive .woocommerce-pagination{margin:26px 0 6px!important}
+  body.woocommerce.archive .woocommerce-pagination ul.page-numbers{display:flex!important;flex-wrap:wrap;justify-content:center;gap:4px!important;border:0!important}
+  body.woocommerce.archive .woocommerce-pagination ul.page-numbers li{margin:0!important;border:0!important}
+  body.woocommerce.archive .woocommerce-pagination ul.page-numbers li>*{
+    min-width:40px;width:auto!important;height:44px!important;padding:0 6px;border-radius:999px!important;font-size:15px!important;font-weight:650!important;
+    background:#fff!important;border:1px solid var(--ec-line)!important;color:var(--ec-ink)!important;text-decoration:none!important}
+  body.woocommerce.archive .woocommerce-pagination ul.page-numbers li>.current{background:var(--ec-forest)!important;border-color:var(--ec-forest)!important;color:var(--ec-cream)!important}
+  body.woocommerce.archive .woocommerce-pagination ul.page-numbers li>.prev,
+  body.woocommerce.archive .woocommerce-pagination ul.page-numbers li>.next{min-width:44px;background:var(--ec-cream)!important;font-size:16px!important}
+  body.woocommerce.archive .woocommerce-pagination ul.page-numbers li>.dots{background:transparent!important;border-color:transparent!important;min-width:20px}
+
+  /* ---------- empty result ---------- */
+  body.woocommerce.archive .primary-column .empty-content{
+    margin:6px 0 10px;padding:30px 20px 26px;text-align:center;background:#fff;border:1px solid var(--ec-line);border-radius:22px}
+  body.woocommerce.archive .primary-column .empty-content svg{width:64px;height:auto;margin:0 auto 10px;display:block}
+  body.woocommerce.archive .primary-column .empty-content .entry-title{font-size:20px!important;margin:0 0 6px!important}
+  body.woocommerce.archive .primary-column .empty-content .woocommerce-info{
+    margin:0!important;padding:0!important;border:0!important;background:none!important;font-size:15px!important;color:var(--ec-mute)!important;line-height:1.45}
+  body.woocommerce.archive .primary-column .empty-content .woocommerce-info::before{display:none!important}
+}
+
+/* very narrow phones (320-374px): keep price ranges on one line where possible */
+@media (max-width:374px){
+  body.woocommerce.archive .shop-wrapper .products .product .price{font-size:14.5px!important}
+  body.woocommerce.archive .shop-wrapper .products .product .product-title{font-size:14px!important}
+  body.woocommerce.archive .before-shop-loop .filter-button a{padding:0 14px 0 12px}
+}

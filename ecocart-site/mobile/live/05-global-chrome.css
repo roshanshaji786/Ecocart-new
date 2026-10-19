@@ -1,0 +1,305 @@
+/* ==========================================================================
+   EcoCart mobile: GLOBAL CHROME (header, drawer, search, bottom bar,
+   WhatsApp, cookie strip, mini-cart, footer, blog post, my-account forms)
+   Appended after skin.css. Phone rules: max-width 767px.
+   Tablet (768-1199px) gets the theme mobile header, drawer, search and
+   mini-cart fixes too; the bottom bar exists only up to 768px.
+   ========================================================================== */
+
+/* ---------- shared tokens ---------- */
+:root{--ec-bb:0px;--ec-hh:56px}
+@media (max-width:768px){
+  :root{--ec-bb:60px}
+  body.theme-blonwe{padding-bottom:calc(var(--ec-bb) + env(safe-area-inset-bottom))!important}
+  /* theme inline CSS adds 79px under the footer on .single pages; body padding now does that job
+     (single products keep it: the product area owns the sticky add-to-cart spacing there) */
+  body.single:not(.single-product) .site-footer .footer-row.footer-copyright{margin-bottom:0!important}
+}
+
+/* ---------- mobile header (theme shows it under 1200px) ---------- */
+@media (max-width:1199px){
+  /* keep the header's space when the theme turns it position:fixed on scroll (stops a 57px content jump) */
+  body.theme-blonwe .site-header{min-height:var(--ec-hh)}
+  body.theme-blonwe .header-mobile .header-inner{height:var(--ec-hh)!important}
+  body.theme-blonwe header.sticky-header .header-mobile{border-bottom:0!important;box-shadow:0 8px 24px -14px rgba(6,18,12,.6)}
+  body.theme-blonwe .header-mobile .header-inner>.col:first-child,
+  body.theme-blonwe .header-mobile .header-inner>.col:last-child{flex:0 0 96px!important;max-width:96px;gap:4px}
+  body.theme-blonwe .header-mobile .header-inner>.col:last-child{justify-content:flex-end!important}
+  body.theme-blonwe .header-mobile .header-inner>.col{padding-left:0!important;padding-right:0!important}
+  body.theme-blonwe .header-mobile .header-inner>.col>*{margin:0!important}
+  body.theme-blonwe .header-mobile .header-action>.action-link,
+  body.theme-blonwe .header-mobile .ec-hsearch{display:inline-flex!important;align-items:center;justify-content:center;width:44px;height:44px;border-radius:999px;padding:0!important;-webkit-tap-highlight-color:transparent}
+  body.theme-blonwe .header-mobile .header-action>.action-link:active,
+  body.theme-blonwe .header-mobile .ec-hsearch:active{background:rgba(243,239,227,.1)}
+  body.theme-blonwe .header-mobile .header-action .action-icon{display:flex;align-items:center;justify-content:center;position:relative;margin:0!important}
+  body.theme-blonwe .header-mobile .header-action i{font-size:24px!important;line-height:1}
+  body.theme-blonwe .header-mobile .ec-hsearch svg{width:22px;height:22px;stroke:var(--ec-cream);fill:none;stroke-width:2;stroke-linecap:round}
+  body.theme-blonwe .header-mobile .cart-button .action-count{top:3px!important;right:-1px!important;left:auto!important;min-width:18px;height:18px;padding:0 5px;font-size:11px!important;font-weight:800;line-height:18px!important;border-radius:999px}
+  body.theme-blonwe .header-mobile .site-brand img{width:44px!important;height:44px!important}
+}
+
+/* ---------- off-canvas drawer (menu button + bottom-bar Categories) ---------- */
+@media (max-width:1199px){
+  body.theme-blonwe .site-drawer{width:min(86vw,340px)!important;background:var(--ec-bg)!important;color:var(--ec-ink)!important;box-shadow:24px 0 60px -20px rgba(6,18,12,.5)}
+  body.theme-blonwe .site-drawer .site-scrollsa{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  body.theme-blonwe .site-drawer .drawer-header{background:var(--ec-forest);padding:6px 10px 6px 16px!important;min-height:var(--ec-hh);border:0!important}
+  body.theme-blonwe .site-drawer .site-brand img{width:44px!important;height:44px!important;padding:3px;border-radius:50%;background:var(--ec-cream);object-fit:contain}
+  body.theme-blonwe .site-drawer .site-close{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(243,239,227,.1);color:var(--ec-cream);cursor:pointer}
+  body.theme-blonwe .site-drawer .site-close svg{width:16px;height:16px;fill:var(--ec-cream)}
+  body.theme-blonwe .site-drawer .drawer-body{padding:6px 16px 8px!important}
+  body.theme-blonwe .site-drawer .drawer-heading{font-size:12px!important;font-weight:700;letter-spacing:.08em;opacity:1!important;color:var(--ec-mute);margin:18px 0 4px!important}
+  body.theme-blonwe .site-drawer .drawer-menu:empty,body.theme-blonwe .site-drawer .ec-empty,
+  body.theme-blonwe .site-drawer .drawer-heading:has(+ .drawer-menu:empty){display:none!important}
+  body.theme-blonwe .site-drawer .drawer-menu .klb-menu li{border-bottom:1px solid var(--ec-line)}
+  body.theme-blonwe .site-drawer .drawer-menu .klb-menu li a{font-size:16.5px!important;font-weight:600!important;min-height:50px;max-height:none!important;padding:12px 2px!important;color:var(--ec-ink)!important;letter-spacing:-.01em}
+  body.theme-blonwe .site-drawer .drawer-menu .klb-menu>li:not(.menu-item-has-children)>a::after{content:"";flex:none;width:7px;height:7px;margin:0 6px 0 auto;border-top:2px solid currentColor;border-right:2px solid currentColor;transform:rotate(45deg);opacity:.3}
+  body.theme-blonwe .site-drawer .drawer-menu .klb-menu li.current-menu-item>a,
+  body.theme-blonwe .site-drawer .drawer-menu .klb-menu li.current_page_parent>a{color:var(--ec-leaf)!important}
+  body.theme-blonwe .site-drawer .drawer-contact{background:#fff;border:1px solid var(--ec-line);border-radius:18px;padding:14px 16px;margin-top:6px}
+  body.theme-blonwe .site-drawer .drawer-contact .contact-item+.contact-item{margin-top:12px!important;padding-top:12px!important;border-color:var(--ec-line)!important}
+  body.theme-blonwe .site-drawer .drawer-contact .contact-header i{color:var(--ec-leaf)}
+  body.theme-blonwe .site-drawer .drawer-contact .contact-title{font-size:16px!important;font-weight:650!important}
+  body.theme-blonwe .site-drawer .drawer-contact .contact-title a{color:var(--ec-ink)!important;display:inline-flex;align-items:center;min-height:44px}
+  body.theme-blonwe .site-drawer .drawer-contact .contact-description{font-size:13.5px!important;color:var(--ec-mute);opacity:1!important}
+  body.theme-blonwe .site-drawer .drawer-footer{padding:8px 16px 0!important}
+  body.theme-blonwe .site-drawer .drawer-footer .site-copyright p{font-size:12.5px!important;color:var(--ec-mute);margin:0}
+  body.theme-blonwe .site-overlay{background:var(--ec-forest)!important}
+  body.theme-blonwe.drawer-active .site-overlay{z-index:120!important} /* dim the sticky header too (it sits at z-index 99) */
+}
+
+/* ---------- full-screen search (bottom-bar Search, header search icon) ---------- */
+@media (max-width:1199px){
+  body.theme-blonwe .klb-mobile-search{background:var(--ec-bg)!important}
+  body.theme-blonwe .klb-mobile-search .site-scroll{height:100%;overflow-y:auto;padding-bottom:calc(var(--ec-bb) + 24px + env(safe-area-inset-bottom))}
+  body.theme-blonwe .klb-mobile-search .mobile-search-header{position:relative;background:var(--ec-forest)!important;padding:calc(12px + env(safe-area-inset-top)) 16px 16px!important}
+  body.theme-blonwe .klb-mobile-search .mobile-search-header p{font-size:14px!important;font-weight:600;color:var(--ec-cream)!important;margin:0 52px 10px 2px!important;min-height:40px;display:flex;align-items:center}
+  body.theme-blonwe .klb-mobile-search .ec-sclose{position:absolute;top:calc(10px + env(safe-area-inset-top));right:10px;width:44px;height:44px;border:0;border-radius:50%;background:rgba(243,239,227,.1);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+  body.theme-blonwe .klb-mobile-search .ec-sclose svg{width:16px;height:16px;fill:var(--ec-cream)}
+  body.theme-blonwe .klb-mobile-search form input.search-input{height:50px!important;font-size:16px!important;border-radius:999px!important;background:#fff!important;border:0!important;padding-left:48px!important;padding-right:16px!important;color:var(--ec-ink)!important;box-shadow:none!important}
+  body.theme-blonwe .klb-mobile-search form input.search-input::placeholder{color:#7b8a7f}
+  body.theme-blonwe .klb-mobile-search form button{left:4px!important;top:4px!important;width:42px!important;height:42px!important;color:var(--ec-ink)!important}
+  body.theme-blonwe .klb-mobile-search .searh-caption{font-size:13.5px!important;color:var(--ec-mute);padding:12px 18px!important;border-color:var(--ec-line)!important}
+  body.theme-blonwe .klb-mobile-search .search-results{padding:16px!important}
+  body.theme-blonwe .klb-mobile-search .search-result-keywords>span,
+  body.theme-blonwe .klb-mobile-search .search-result-products>span{font-size:13px!important;font-weight:700!important;color:var(--ec-ink);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px!important}
+  body.theme-blonwe .klb-mobile-search .search-result-keywords ul{gap:8px!important}
+  body.theme-blonwe .klb-mobile-search .search-result-keywords ul li a{min-height:44px;font-size:14.5px!important;font-weight:550;padding:0 16px!important;border-radius:999px!important;background:#fff;border:1px solid var(--ec-line)!important;color:var(--ec-ink)!important}
+  body.theme-blonwe .klb-mobile-search .search-result-products .product .thumbnail-wrapper{width:56px!important;border-radius:12px;overflow:hidden}
+  body.theme-blonwe .klb-mobile-search .search-result-products .product .content-wrapper .product_title{font-size:14.5px!important;font-weight:600!important}
+  body.theme-blonwe .klb-mobile-search .search-result-products .product .content-wrapper .price{font-size:14.5px!important;color:var(--ec-leaf)!important;font-weight:750}
+  body.theme-blonwe .klb-mobile-search .search-result-products .product+.product{border-color:var(--ec-line)!important}
+  /* the AJAX results bring back the theme's demo 'Trending' words (envia, getwooplugins...): hide them once products show */
+  body.theme-blonwe .klb-mobile-search .klb-search-results .keywords-column{display:none!important}
+  body.theme-blonwe .klb-mobile-search:has(.klb-search-results .product) .mobile-search-body{display:none!important}
+}
+
+/* ---------- bottom bar (theme shows it up to 768px); same values as the homepage block ---------- */
+@media (max-width:768px){
+  body.theme-blonwe .klb-mobile-bottom{height:auto!important;padding:4px 6px calc(4px + env(safe-area-inset-bottom))!important;border-radius:0!important;background:rgba(6,18,12,.97)!important;box-shadow:0 -12px 30px rgba(0,0,0,.35)!important;border-top:1px solid rgba(243,239,227,.08)!important}
+  body.theme-blonwe .klb-mobile-bottom .mobile-menu ul{height:52px;padding:0!important;margin:0!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:space-around!important}
+  body.theme-blonwe .klb-mobile-bottom .mobile-menu ul li{flex:1 1 0;min-width:0;display:flex!important;justify-content:center}
+  body.theme-blonwe .klb-mobile-bottom .mobile-menu ul li a{position:relative;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:56px;height:52px!important;padding:0 2px;-webkit-tap-highlight-color:transparent}
+  body.theme-blonwe .klb-mobile-bottom .mobile-menu ul li a i{font-size:22px!important;height:22px!important;line-height:22px!important;margin:0!important;color:rgba(243,239,227,.8)!important}
+  body.theme-blonwe .klb-mobile-bottom .mobile-menu ul li a span{font-size:11px!important;font-weight:600;height:auto!important;line-height:1.1!important;letter-spacing:.01em;opacity:1!important;color:rgba(243,239,227,.72)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  body.theme-blonwe .klb-mobile-bottom .mobile-menu ul li a.ec-current i,
+  body.theme-blonwe .klb-mobile-bottom .mobile-menu ul li a.ec-current span,
+  body.theme-blonwe .klb-mobile-bottom .mobile-menu ul li a.active i,
+  body.theme-blonwe .klb-mobile-bottom .mobile-menu ul li a.active span{color:var(--ec-lime)!important}
+  body.theme-blonwe .klb-mobile-bottom .mobile-menu ul li a.ec-current::before{content:"";position:absolute;top:-4px;left:50%;width:26px;height:3px;margin-left:-13px;border-radius:0 0 4px 4px;background:var(--ec-lime)}
+}
+
+/* ---------- WhatsApp chat button: 52px round icon, bottom right (homepage values) ---------- */
+@media (max-width:1199px){
+  body .qlwapp__container.qlwapp__container{position:fixed!important;top:auto!important;left:auto!important;right:14px!important;bottom:calc(var(--ec-bb) + 14px + env(safe-area-inset-bottom))!important;height:auto!important;width:auto!important;margin:0!important;transform:none!important;z-index:89!important;transition:opacity .2s,visibility .2s}
+  body .qlwapp__container .qlwapp__button.qlwapp__button--button{width:52px!important;height:52px!important;min-height:0!important;min-width:0!important;padding:0!important;margin:0!important;border-radius:50%!important;justify-content:center!important;box-shadow:0 10px 26px rgba(0,0,0,.35)!important}
+  body .qlwapp__container .qlwapp__button .qlwapp__text{display:none!important}
+  body .qlwapp__container .qlwapp__button .qlwapp__icon{margin:0!important;font-size:26px!important}
+  /* sit above the cookie strip while it is showing */
+  body:has(.site-gdpr.active) .qlwapp__container.qlwapp__container{bottom:calc(var(--ec-bb) + 84px + env(safe-area-inset-bottom))!important}
+  body.drawer-active .qlwapp__container,body.mobile-search-active .qlwapp__container,body.mobile-filter-active .qlwapp__container{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+}
+
+/* ---------- cookie notice: one-row strip above the bottom bar (homepage values, cream card) ---------- */
+@media (max-width:1199px){
+  body .site-gdpr.site-gdpr{left:8px!important;right:8px!important;bottom:calc(var(--ec-bb) + 8px + env(safe-area-inset-bottom))!important;width:auto!important;max-width:none!important;padding:0!important;border-radius:16px!important;background:#fff!important;border:1px solid var(--ec-line);box-shadow:0 14px 40px -14px rgba(6,18,12,.45)!important;z-index:89!important}
+  body .site-gdpr .gdpr-inner{display:flex!important;align-items:center;gap:12px;padding:10px 10px 10px 14px!important;text-align:left!important;max-width:560px;margin:0 auto;border-radius:0!important}
+  body .site-gdpr .gdpr-icon{display:none!important}
+  body .site-gdpr .gdpr-text{flex:1;min-width:0;margin:0!important;font-size:12.5px!important;line-height:1.35!important;color:var(--ec-ink)!important}
+  body .site-gdpr .gdpr-text br{display:none}
+  body .site-gdpr .gdpr-text a{color:var(--ec-leaf)!important;font-weight:650;text-decoration:underline;text-underline-offset:2px}
+  body .site-gdpr .gdpr-button{margin:0!important;flex:none}
+  body .site-gdpr .gdpr-button .button{display:inline-flex!important;align-items:center;justify-content:center;height:40px!important;padding:0 16px!important;font-size:13px!important;font-weight:700!important;line-height:1!important;white-space:nowrap;border-radius:999px!important;background:var(--ec-forest)!important;color:var(--ec-cream)!important;border:0!important}
+  body.drawer-active .site-gdpr,body.mobile-search-active .site-gdpr{visibility:hidden!important}
+}
+
+/* ---------- cookie notice: compact strip above the bottom bar ---------- */
+@media (max-width:767px){
+  body .site-gdpr.site-gdpr{left:8px!important;right:8px!important;bottom:calc(var(--ec-bb) + 8px + env(safe-area-inset-bottom))!important;width:auto!important;max-width:none!important;padding:10px 10px 10px 14px!important;border-radius:16px!important;background:#fff!important;border:1px solid var(--ec-line);box-shadow:0 14px 40px -14px rgba(6,18,12,.45)!important;z-index:89!important}
+  body .site-gdpr .gdpr-inner{display:flex!important;align-items:center;gap:10px;text-align:left!important;border-radius:0!important}
+  body .site-gdpr .gdpr-icon{display:none!important}
+  body .site-gdpr .gdpr-text{flex:1 1 auto;min-width:0;margin:0!important;font-size:13px!important;line-height:1.35!important;color:var(--ec-ink)!important}
+  body .site-gdpr .gdpr-text br{display:none}
+  body .site-gdpr .gdpr-text a{color:var(--ec-leaf)!important;font-weight:650;text-decoration:underline;text-underline-offset:2px}
+  body .site-gdpr .gdpr-button{flex:none}
+  body .site-gdpr .gdpr-button .button{display:inline-flex!important;align-items:center;justify-content:center;height:44px!important;min-height:44px;padding:0 16px!important;font-size:13.5px!important;font-weight:700!important;line-height:1!important;white-space:nowrap;border-radius:999px!important;background:var(--ec-forest)!important;color:var(--ec-cream)!important;border:0!important}
+  body.drawer-active .site-gdpr,body.mobile-search-active .site-gdpr{visibility:hidden!important}
+}
+
+/* ---------- mini-cart dropdown under the header cart icon ---------- */
+@media (max-width:767px){
+  body.theme-blonwe .header-mobile .cart-button .custom-dropdown-menu{position:fixed!important;top:calc(var(--ec-hh) + 6px)!important;left:8px!important;right:8px!important;width:auto!important;min-width:0!important;padding-top:0!important}
+  body.theme-blonwe .header-mobile .cart-button .custom-dropdown-body{padding:16px!important;border-radius:20px!important;border:1px solid var(--ec-line)!important;background:#fff!important;box-shadow:0 30px 70px -20px rgba(6,18,12,.55)!important;max-height:calc(100vh - var(--ec-hh) - var(--ec-bb) - 24px);max-height:calc(100dvh - var(--ec-hh) - var(--ec-bb) - 24px);overflow-y:auto;overscroll-behavior:contain}
+  body.theme-blonwe .header-mobile .cart-button .custom-dropdown-body::before,
+  body.theme-blonwe .header-mobile .cart-button .custom-dropdown-body::after{display:none!important}
+}
+@media (max-width:1199px){
+  /* skin colours every header link cream; inside the white mini-cart they must be dark */
+  body.theme-blonwe .site-header .header-mobile .custom-dropdown-menu a,
+  body.theme-blonwe .site-header .header-mobile .custom-dropdown-menu i{color:var(--ec-ink)!important}
+  body.theme-blonwe .header-mobile .cart-not-empty .products{max-height:none!important}
+  body.theme-blonwe .header-mobile .cart-not-empty .products .product .thumbnail-wrapper{width:64px!important;border-radius:12px;overflow:hidden;background:#eef0e8}
+  body.theme-blonwe .header-mobile .cart-not-empty .products .product .product-title{font-size:14.5px!important;font-weight:600!important;line-height:1.3!important}
+  body.theme-blonwe .header-mobile .cart-not-empty .products .product .price,
+  body.theme-blonwe .header-mobile .cart-not-empty .products .product .price .woocommerce-Price-amount{font-size:14.5px!important;color:var(--ec-ink)!important;font-weight:700}
+  body.theme-blonwe .header-mobile .cart-not-empty .products .product .remove_from_cart_button{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:none;width:44px;height:44px!important;margin:-10px -10px 0 0!important;border-radius:50%}
+  body.theme-blonwe .header-mobile .cart-not-empty .products .product .thumbnail-wrapper a{display:block}
+  body.theme-blonwe .header-mobile .cart-not-empty .products .product .remove_from_cart_button i{color:var(--ec-mute)!important;font-size:18px}
+  body.theme-blonwe .header-mobile .cart-not-empty .woocommerce-mini-cart__total{font-size:15px!important;padding-top:12px!important;margin-bottom:12px!important;border-color:var(--ec-line)!important}
+  body.theme-blonwe .header-mobile .cart-not-empty .woocommerce-mini-cart__total .woocommerce-Price-amount{color:var(--ec-ink)!important;font-size:17px!important;font-weight:800}
+  body.theme-blonwe .header-mobile .klb-free-shipping{display:none!important}
+  body.theme-blonwe .header-mobile .woocommerce-mini-cart__buttons>.button{height:48px!important;font-size:15px!important;font-weight:650!important;background:#fff!important;color:var(--ec-ink)!important;border:1.5px solid var(--ec-ink)!important}
+  body.theme-blonwe .header-mobile .shiprocket-headless{margin-top:10px}
+  body.theme-blonwe .header-mobile .cart-empty .empty-text{font-size:15px;color:var(--ec-mute)}
+  body.theme-blonwe .header-mobile .cart-empty .empty-icon svg{fill:#c9d1c6}
+}
+
+/* ---------- footer on phones ---------- */
+@media (max-width:767px){
+  body.theme-blonwe .site-footer .footer-newsletter .footer-inner{padding:32px 0 28px!important}
+  body.theme-blonwe .site-footer .footer-newsletter .newsletter-text .entry-title{font-size:22px!important;line-height:1.2;margin-bottom:8px}
+  body.theme-blonwe .site-footer .footer-newsletter .newsletter-text .entry-caption p{font-size:14px!important;line-height:1.5;opacity:1!important}
+  body.theme-blonwe .site-footer .footer-newsletter .footer-inner>.column+.column{margin-top:18px!important}
+  body.theme-blonwe .site-footer .footer-newsletter .newsletter-form{min-width:0!important;max-width:none!important}
+  body.theme-blonwe .site-footer .footer-newsletter .newsletter-form input[type=email]{height:52px!important;font-size:16px!important;padding:0 128px 0 20px!important;line-height:normal!important}
+  body.theme-blonwe .site-footer .footer-newsletter .newsletter-form .btn{top:4px!important;right:4px!important;height:44px!important;line-height:44px!important;padding:0 20px!important;font-size:15px!important;border-radius:999px!important}
+  body.theme-blonwe .site-footer .footer-newsletter .newsletter-form .privacy-policy,
+  body.theme-blonwe .site-footer .footer-newsletter .newsletter-form .privacy-policy p{font-size:12.5px!important;line-height:1.5;text-align:center}
+
+  body.theme-blonwe .site-footer .footer-widgets .footer-inner{padding:28px 0 8px!important;row-gap:28px!important}
+  body.theme-blonwe .site-footer .footer-widgets .widget{margin-bottom:0!important}
+  body.theme-blonwe .site-footer .footer-widgets .column-widgets{row-gap:0!important}
+  body.theme-blonwe .site-footer .widget-title{font-size:16px!important;font-weight:700!important;margin-bottom:12px!important}
+  body.theme-blonwe .site-footer .column-brand .widget-body p{font-size:14px;margin-bottom:6px}
+  body.theme-blonwe .site-footer .column-brand .company-phone{margin:4px 0!important}
+  body.theme-blonwe .site-footer .column-brand .company-phone a{display:inline-flex;align-items:center;min-height:44px;font-size:22px!important;font-weight:750;color:var(--ec-cream)!important;letter-spacing:-.01em}
+  body.theme-blonwe .site-footer .column-brand .company-email a{display:inline-flex;align-items:center;min-height:44px}
+  body.theme-blonwe .site-footer .column-brand .widget-body:empty,
+  body.theme-blonwe .site-footer .column-brand .widget-body:has(> p:only-child:empty){display:none}
+  body.theme-blonwe .site-footer .column-widgets .widget-column:empty{display:none!important}
+  body.theme-blonwe .site-footer .widget_nav_menu ul.menu{display:grid!important;grid-template-columns:1fr 1fr;column-gap:14px;margin:0;padding:0}
+  body.theme-blonwe .site-footer .widget_nav_menu ul.menu li{margin:0!important;padding:0!important}
+  body.theme-blonwe .site-footer .widget_nav_menu ul.menu li a{display:flex!important;align-items:center;min-height:44px;font-size:14.5px!important;line-height:1.25!important;padding:4px 0!important}
+  /* two leftover theme-demo links point to klbtheme.com (Your Orders, Cookie Settings) */
+  body.theme-blonwe .site-footer .widget_nav_menu li:has(> a[href*="klbtheme.com"]){display:none!important}
+
+  body.theme-blonwe .site-footer .footer-social .footer-inner{padding:18px 0!important;flex-direction:row!important;align-items:center}
+  body.theme-blonwe .site-footer .footer-social .site-social{flex-direction:row!important;align-items:center;gap:12px}
+  body.theme-blonwe .site-footer .footer-social .social-label{margin:0!important;font-size:14px!important}
+  body.theme-blonwe .site-footer .footer-social .site-social ul{column-gap:8px!important}
+  body.theme-blonwe .site-footer .footer-social .site-social ul li a{width:44px!important;height:44px!important;font-size:19px!important}
+
+  body.theme-blonwe .site-footer .footer-copyright .footer-inner{flex-direction:column;align-items:center!important;text-align:center;gap:12px;padding:20px 0 24px!important}
+  body.theme-blonwe .site-footer .footer-copyright .site-copyright p{font-size:13px!important}
+  body.theme-blonwe .site-footer .footer-copyright .site-payment-cards{margin:0!important;align-items:center;gap:8px}
+  body.theme-blonwe .site-footer .footer-copyright .payment-cards-label{font-size:13px!important;margin:0!important}
+  body.theme-blonwe .site-footer .footer-copyright .payment-cards img{width:auto!important;max-width:min(240px,100%);height:auto;max-height:34px;object-fit:contain}
+}
+
+/* ---------- blog post (single post) on phones ---------- */
+@media (max-width:767px){
+  body.single-post .entry-header{margin-bottom:18px!important}
+  body.single-post .entry-header .entry-category a{font-size:12px!important;letter-spacing:.08em}
+  body.single-post .entry-header h1.entry-title{font-size:25px!important;line-height:1.18!important;letter-spacing:-.03em;margin:8px 0 10px!important;overflow-wrap:break-word}
+  body.single-post .entry-header .entry-meta,body.single-post .entry-header .entry-published a{font-size:14px!important;color:var(--ec-mute)!important}
+  body.single-post article .entry-content{font-size:17px}
+  body.single-post article .entry-content p,
+  body.single-post article .entry-content li{font-size:17px!important;line-height:1.65!important;color:#1d3327}
+  body.single-post article .entry-content p{margin-bottom:16px}
+  body.single-post article .entry-content h2{font-size:22px!important;line-height:1.25!important;font-weight:750!important;letter-spacing:-.02em;margin:30px 0 12px!important}
+  body.single-post article .entry-content h3{font-size:19px!important;line-height:1.3!important;font-weight:700!important;margin:24px 0 10px!important}
+  body.single-post article .entry-content h4{font-size:17px!important;font-weight:700!important}
+  body.single-post article .entry-content ul,body.single-post article .entry-content ol{padding-left:22px;margin-bottom:16px}
+  body.single-post article .entry-content li{margin-bottom:6px}
+  body.single-post article .entry-content li::marker{color:var(--ec-leaf)}
+  body.single-post article .entry-content img{max-width:100%;height:auto;border-radius:16px}
+  body.single-post article .entry-content figure{margin:22px 0;max-width:100%}
+  body.single-post article .entry-content figcaption{font-size:13.5px;color:var(--ec-mute)}
+  body.single-post article .entry-content table{display:block;max-width:100%;overflow-x:auto;font-size:15px}
+  body.single-post article .entry-content iframe,body.single-post article .entry-content video{max-width:100%}
+  body.single-post article .entry-content a{color:var(--ec-leaf);text-underline-offset:2px}
+  /* comment form */
+  body.single-post .post-comments .comment-reply-title{font-size:22px!important;font-weight:750!important}
+  body.single-post .comment-form .comment-notes{font-size:14px!important}
+  body.single-post .comment-form label{font-size:14px!important;font-weight:600}
+  body.single-post .comment-form textarea{border-radius:18px!important;min-height:140px;height:140px;font-size:16px!important;padding:12px 16px!important;background:#fff!important;border:1px solid rgba(13,35,24,.18)!important}
+  body.single-post .comment-form input[type=text],body.single-post .comment-form input[type=email],body.single-post .comment-form input[type=url]{height:50px!important;font-size:16px!important;background:#fff!important;border:1px solid rgba(13,35,24,.18)!important;padding:0 18px!important}
+  body.single-post .comment-form .comment-form-cookies-consent,
+  body.single-post .comment-form .comment-subscription-form{display:flex!important;align-items:flex-start;gap:10px;margin-bottom:12px}
+  body.single-post .comment-form .comment-form-cookies-consent label,
+  body.single-post .comment-form .comment-subscription-form label{margin:0!important;font-weight:500;line-height:1.4}
+  body.single-post .comment-form input[type=checkbox]{flex:none;-webkit-appearance:checkbox!important;appearance:auto!important;width:20px!important;height:20px!important;margin:1px 0 0!important;accent-color:var(--ec-leaf)}
+  body.single-post .comment-form input[type=checkbox]::before,body.single-post .comment-form input[type=checkbox]::after{display:none!important}
+  body.single-post .comment-form .form-submit input[type=submit]{width:100%;height:52px!important;font-size:16px!important}
+  /* sidebar under the post */
+  body.single-post .blog-sidebar .widget{margin-bottom:28px}
+  body.single-post .blog-sidebar .widget-title{font-size:17px!important}
+  body.single-post .blog-sidebar .posts-list .entry-title{font-size:15px!important;line-height:1.35}
+  body.single-post .blog-sidebar .posts-list .entry-title a{color:var(--ec-ink)!important}
+  body.single-post .blog-sidebar .entry-published a{font-size:13px!important;color:var(--ec-mute)!important}
+  body.single-post .blog-sidebar .entry-media img{border-radius:12px}
+  body.single-post .blog-sidebar .widget_social_media ul.social-color li+li{margin-top:8px}
+  body.single-post .blog-sidebar .widget_social_media ul.social-color li a{display:flex!important;align-items:center;gap:12px;min-height:48px;padding:0 18px!important;border-radius:999px!important;background:#fff!important;border:1px solid var(--ec-line)!important;color:var(--ec-ink)!important}
+  body.single-post .blog-sidebar .widget_social_media ul.social-color li a .social-label{font-size:14.5px!important;font-weight:650;text-transform:capitalize!important;letter-spacing:0!important;color:var(--ec-ink)!important}
+  body.single-post .blog-sidebar .widget_social_media ul.social-color li a .social-icon,body.single-post .blog-sidebar .widget_social_media ul.social-color li a .social-icon i{color:var(--ec-leaf)!important;background:none!important;font-size:18px}
+}
+
+/* ---------- my-account login / register on phones ---------- */
+@media (max-width:767px){
+  body.woocommerce-account .site-login{margin-top:8px!important;margin-bottom:28px}
+  body.woocommerce-account .site-login .login-page-tab{display:flex!important;gap:0!important;padding:4px!important;margin:0 0 20px!important;background:#fff;border:1px solid var(--ec-line);border-radius:999px}
+  body.woocommerce-account .site-login .login-page-tab li{flex:1 1 0;list-style:none}
+  body.woocommerce-account .site-login .login-page-tab li a{display:flex!important;align-items:center;justify-content:center;height:44px;padding:0!important;border-radius:999px;font-size:15.5px!important;font-weight:650!important;color:var(--ec-mute)!important}
+  body.woocommerce-account .site-login .login-page-tab li a::before{display:none!important}
+  body.woocommerce-account .site-login .login-page-tab li a.active{background:var(--ec-forest);color:var(--ec-cream)!important}
+  body.woocommerce-account .site-login .login-form>p,
+  body.woocommerce-account .site-login .register-form>p{font-size:14.5px!important;line-height:1.5;color:var(--ec-mute);margin-bottom:18px!important}
+  /* only the visible form sets the height (no empty gap under Log in) */
+  body.woocommerce-account .site-login .login-form-container{align-items:flex-start}
+  body.woocommerce-account .site-login .login-form-container:not(.show-register-form) .register-form,
+  body.woocommerce-account .site-login .login-form-container.show-register-form .login-form{max-height:0;overflow:hidden}
+  body.woocommerce-account .site-login .woocommerce-form label{font-size:14px!important;font-weight:600!important;color:var(--ec-ink);margin-bottom:6px}
+  body.woocommerce-account .site-login .woocommerce-form .form-row{margin-bottom:14px}
+  body.woocommerce-account .site-login .woocommerce-form input.input-text{height:50px!important;font-size:16px!important;background:#fff!important;border:1px solid rgba(13,35,24,.18)!important;border-radius:999px!important;padding:0 18px!important;color:var(--ec-ink)!important}
+  body.woocommerce-account .site-login .woocommerce-form input.input-text:focus{border-color:var(--ec-leaf)!important;box-shadow:0 0 0 3px rgba(31,143,78,.15)!important;outline:0}
+  body.woocommerce-account .site-login .woocommerce-form .password-input{display:block;position:relative}
+  body.woocommerce-account .site-login .woocommerce-form .show-password-input{top:50%!important;right:6px!important;transform:translateY(-50%);width:44px;height:44px;display:flex;align-items:center;justify-content:center}
+  body.woocommerce-account .site-login .site-login-inner .login-form-container input[type=checkbox]{-webkit-appearance:checkbox!important;appearance:auto!important;width:20px!important;height:20px!important;accent-color:var(--ec-leaf);margin:0 10px 0 0!important;flex:none}
+  body.woocommerce-account .site-login input[type=checkbox]::before,body.woocommerce-account .site-login input[type=checkbox]::after{display:none!important}
+  body.woocommerce-account .site-login .woocommerce-form-login__rememberme,
+  body.woocommerce-account .site-login .mailchimp-newsletter label{display:flex!important;align-items:center;min-height:44px;font-weight:500!important;margin:0!important}
+  body.woocommerce-account .site-login .login-form .lost-password{margin-bottom:12px!important}
+  body.woocommerce-account .site-login .login-form .lost-password .form-row{margin:0!important}
+  body.woocommerce-account .site-login .woocommerce-LostPassword{font-size:14px!important;margin:0!important}
+  body.woocommerce-account .site-login .woocommerce-LostPassword a{display:inline-flex;align-items:center;min-height:44px;padding:0!important;color:var(--ec-leaf)!important;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+  body.woocommerce-account .site-login .woocommerce-LostPassword a::after{display:none!important}
+  body.woocommerce-account .site-login .site-login-inner .login-form-container .woocommerce-button{height:52px!important;line-height:52px!important;font-size:16px!important;background:var(--ec-leaf)!important;border:0!important;color:#fff!important}
+  body.woocommerce-account .site-login .woocommerce-privacy-policy-text p{font-size:13px!important;line-height:1.5;color:var(--ec-mute)}
+  body.woocommerce-account .site-login .woocommerce-privacy-policy-text a{color:var(--ec-leaf)}
+}
+
+/* ---------- phone baseline: inputs never trigger iOS zoom ---------- */
+@media (max-width:767px){
+  body.theme-blonwe input[type=text],body.theme-blonwe input[type=email],body.theme-blonwe input[type=search],
+  body.theme-blonwe input[type=tel],body.theme-blonwe input[type=password],body.theme-blonwe input[type=number],
+  body.theme-blonwe input[type=url],body.theme-blonwe select,body.theme-blonwe textarea{font-size:16px!important}
+}

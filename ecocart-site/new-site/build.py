@@ -1,0 +1,661 @@
+"""Builds the EcoCart 3D homepage.
+
+fragment.html  -> goes into ONE Elementor HTML widget on page 4324 (template elementor_canvas)
+preview.html   -> same fragment wrapped in the current homepage <head> SEO tags, for local testing
+
+Product data comes from products.json (WooCommerce Store API dump). Prices are also
+refreshed live in the browser from /wp-json/wc/store/v1/products, so they never go stale.
+Run: python3 build.py
+"""
+import json, html, unicodedata, os, re
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+P = {p['id']: p for p in json.load(open(os.path.join(HERE, 'products.json')))}
+SITE = 'https://ecocart.co.in'
+UP = SITE + '/wp-content/uploads'
+
+def clean(name):
+    n = unicodedata.normalize('NFKC', html.unescape(name))
+    n = n.replace('_', ' – ').replace('-coconut', ' – coconut')
+    return re.sub(r'\s+', ' ', n).strip()
+
+def rs(minor):
+    v = int(minor) / 100
+    return '₹' + (f'{v:,.0f}' if v == int(v) else f'{v:,.2f}')
+
+def price_html(p):
+    pr = p['prices']
+    rng = pr.get('price_range')
+    if rng:
+        return f'{rs(rng["min_amount"])} – {rs(rng["max_amount"])}'
+    if pr['regular_price'] != pr['price'] and int(pr['price']) > 0:
+        return f'<del>{rs(pr["regular_price"])}</del> {rs(pr["price"])}'
+    return rs(pr['price'])
+
+def off(p):
+    pr = p['prices']
+    r, s = int(pr['regular_price']), int(pr['price'])
+    return round((r - s) * 100 / r) if r and 0 < s < r else 0
+
+def card(pid, tag):
+    p = P[pid]
+    name = clean(p['name'])
+    img = p['images'][0]
+    simple = p['type'] == 'simple' and not p['has_options']
+    btn = (f'<a class="btn sm" rel="nofollow" href="{SITE}/?add-to-cart={pid}" data-add="{pid}">Add to basket</a>' if simple
+           else f'<a class="btn sm ghost" href="{p["permalink"]}">Choose options</a>')
+    o = off(p)
+    badge = f'<span class="off">-{o}%</span>' if o else ''
+    return f'''<article class="pc rv" data-tab="{tag}" data-id="{pid}">
+  <a class="ph" href="{p['permalink']}" aria-label="{html.escape(name)}">{badge}<img src="{img['thumbnail']}" alt="{html.escape(name)} – EcoCart" width="500" height="667" loading="lazy" decoding="async"></a>
+  <h3><a href="{p['permalink']}">{html.escape(name)}</a></h3>
+  <p class="price">{price_html(p)}</p>
+  {btn}
+</article>'''
+
+ECO = [7184, 7515, 7511, 7501, 7223, 7282, 6550, 6683, 6576, 7461]
+GIFT = [5336, 6072, 6099, 6087, 6251, 6037, 6506, 6079]
+THOBE = [6146, 6237, 6116, 6239, 6243, 6241, 6233, 6226]
+deals = '\n'.join([card(i, 'eco') for i in ECO] + [card(i, 'gift') for i in GIFT])
+thobes = '\n'.join(card(i, 'thobe') for i in THOBE)
+honey = P[7184]
+
+SUB = [('Honey', 'eco-goods/honey'), ('Virgin Coconut Oil', 'eco-goods/virgin-coconut-oil'), ('Coconut Products', 'eco-goods/coconut-products'),
+       ('GreenNuts', 'eco-goods/greennuts'), ('Spices', 'eco-goods/spices-eco-goods'), ('Ghee', 'eco-goods/ghee-eco-goods'),
+       ('Grains & Flours', 'eco-goods/grains-flours'), ('Homemade Soaps', 'eco-goods/homemade-soaps'), ('Beauty Products', 'eco-goods/beauty-products'),
+       ('Bamboo Tissue', 'eco-goods/bamboo-tissue'), ('Natural Sweeteners', 'eco-goods/natural-organic-sweeteners'), ('Pure Pack', 'eco-goods/pure-pack')]
+subchips = ''.join(f'<a href="{SITE}/product-category/{s}/">{html.escape(n)}</a>' for n, s in SUB)
+
+TESTI = [f'{UP}/2024/08/Neutral-Minimalist-Testimonials-Instagram-{i}-768x768.jpg' for i in (1, 2, 3, 4, 7)]
+testi = ''.join(f'<figure><img src="{u}" alt="EcoCart customer review {n}" width="768" height="768" loading="lazy" decoding="async"></figure>' for n, u in enumerate(TESTI, 1))
+
+IG = 'https://www.instagram.com/ecocart.co.in'
+WA = 'https://wa.me/917012045854?text=' + 'Hi%20EcoCart%2C%20I%20have%20a%20question'
+
+CSS = r'''
+html.ec-lock{scroll-behavior:auto}
+html body,html body.theme-blonwe{background:#06120c!important;margin:0!important;overflow-x:hidden}
+:root{--ec-bb:0px}
+.klb-mobile-bottom{background:rgba(6,18,12,.92)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(243,239,227,.1)}
+.klb-mobile-bottom a,.klb-mobile-bottom i,.klb-mobile-bottom span{color:#f3efe3!important}
+.site-gdpr{background:none!important;box-shadow:none!important}
+.site-gdpr .gdpr-inner{background:#0d2318!important;color:#f3efe3!important;border:1px solid rgba(243,239,227,.12);border-radius:18px!important;padding:18px!important}
+.site-gdpr .gdpr-inner *{color:#f3efe3!important}.site-gdpr .gdpr-icon{display:none!important}
+.site-gdpr .button,.site-gdpr .btn,.site-gdpr a.button{background:#bef264!important;color:#08140d!important;border-radius:999px!important}
+@media (max-width:1199px){#ec .mcta{display:none!important}#ec footer{padding-bottom:110px}}
+/* phones: slim app-style bottom bar, round WhatsApp button and a one-line cookie strip, none of them covering content */
+@media (max-width:1199px){
+ :root{--ec-bb:60px}
+ .klb-mobile-bottom{height:auto!important;padding:4px 6px calc(4px + env(safe-area-inset-bottom))!important;border-radius:0!important;box-shadow:0 -12px 30px rgba(0,0,0,.35)!important}
+ .klb-mobile-bottom ul{padding:0!important;height:52px;justify-content:space-around!important;align-items:center}
+ .klb-mobile-bottom li{flex:1 1 0;display:flex!important;justify-content:center}
+ .klb-mobile-bottom a{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:56px;height:52px!important}
+ .klb-mobile-bottom i{font-size:22px!important;height:22px!important;line-height:22px!important;margin:0!important}
+ .klb-mobile-bottom span{font-size:11px!important;font-weight:600;height:auto!important;line-height:1.1!important;letter-spacing:.01em}
+ .qlwapp__container.qlwapp__container{top:auto!important;bottom:calc(var(--ec-bb) + 14px + env(safe-area-inset-bottom))!important;right:14px!important;left:auto!important;height:auto!important;width:auto!important}
+ .qlwapp__container .qlwapp__button{width:52px!important;height:52px!important;min-height:0!important;padding:0!important;margin:0!important;border-radius:50%!important;justify-content:center!important;box-shadow:0 10px 26px rgba(0,0,0,.35)!important}
+ .qlwapp__container .qlwapp__button .qlwapp__text{display:none!important}
+ .qlwapp__container .qlwapp__button .qlwapp__icon{margin:0!important;font-size:26px!important}
+ .site-gdpr.site-gdpr{left:8px!important;right:8px!important;width:auto!important;max-width:none!important;padding:0!important;bottom:calc(var(--ec-bb) + 8px + env(safe-area-inset-bottom))!important}
+ .site-gdpr .gdpr-inner{display:flex!important;align-items:center;gap:12px;padding:10px 10px 10px 14px!important;text-align:left!important;max-width:560px;margin:0 auto}
+ .site-gdpr .gdpr-text{font-size:12.5px!important;line-height:1.35!important;margin:0!important;flex:1}.site-gdpr .gdpr-text br{display:none}
+ .site-gdpr .gdpr-button{margin:0!important;flex:none}.site-gdpr .gdpr-button .button{height:40px!important;padding:0 16px!important;font-size:13px!important;font-weight:700!important}
+ body:has(.site-gdpr.active) .qlwapp__container.qlwapp__container{bottom:calc(var(--ec-bb) + 84px + env(safe-area-inset-bottom))!important}
+}
+#ec{--bg:#06120c;--bg2:#0a1c13;--ink:#f3efe3;--mute:#b7c2b4;--dim:#7d8f81;--line:rgba(243,239,227,.1);--card:rgba(243,239,227,.04);
+--leaf:#4ade80;--lime:#bef264;--honey:#f5b941;--grad:linear-gradient(100deg,#d9f99d 0%,#4ade80 45%,#f5b941 100%);
+position:relative;color:var(--ink);background:transparent;font-family:"Inter Tight",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:clip}
+#ec *,#ec *::before,#ec *::after{box-sizing:border-box}
+#ec h1,#ec h2,#ec h3,#ec h4,#ec p,#ec ul,#ec li,#ec figure,#ec form{margin:0;padding:0;font-family:inherit;color:inherit;letter-spacing:normal;text-transform:none;font-weight:inherit;line-height:inherit;border:0;background:none}
+#ec ul{list-style:none}
+#ec a{color:inherit;text-decoration:none;transition:color .25s,background .25s,border-color .25s}
+#ec img{display:block;max-width:100%;height:auto}
+#ec .serif{font-family:"Fraunces",Georgia,serif;font-style:italic;font-weight:400;letter-spacing:-.01em}
+#ec .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+#ec-gl{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:block}
+#ec .glow{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(60vw 50vh at 80% 10%,rgba(74,222,128,.12),transparent 60%),radial-gradient(50vw 40vh at 0% 90%,rgba(245,185,65,.08),transparent 60%)}
+#ec .wrap{position:relative;z-index:2;width:100%;max-width:1240px;margin:0 auto;padding:0 28px}
+#ec section{position:relative;z-index:2}
+/* nav */
+#ec .bar{position:relative;z-index:3;font-size:13px;color:var(--mute);text-align:center;padding:9px 16px;border-bottom:1px solid var(--line)}
+#ec .bar a{color:var(--lime)}
+#ec .nav{position:sticky;top:12px;z-index:50;margin:12px auto 0;width:calc(100% - 32px);max-width:1180px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 8px 8px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(6,18,12,.6);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+#ec .nav.hide{transform:translateY(-160%)}
+#ec .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.01em}
+#ec .logo img{width:44px;height:44px;border-radius:50%;background:#f3efe3;padding:3px;object-fit:contain}
+#ec .links{display:flex;gap:24px;font-size:14.5px;color:var(--mute)}
+#ec .links a:hover{color:var(--ink)}
+#ec .tools{display:flex;align-items:center;gap:6px}
+#ec .ic{position:relative;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);color:var(--ink)}
+#ec .ic:hover{border-color:var(--leaf);color:var(--leaf)}
+#ec .ic svg{width:19px;height:19px}
+#ec .ic b{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--honey);color:#1a1205;font-size:11px;font-weight:800;display:grid;place-items:center}
+#ec .ic b:empty{display:none}
+#ec .menu{display:none}
+#ec .drawer{position:fixed;inset:0;z-index:60;background:rgba(4,12,8,.97);display:flex;flex-direction:column;gap:6px;padding:90px 28px 28px;font-size:24px;font-weight:600;transform:translateY(-100%);transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+#ec .drawer.on{transform:none}
+#ec .drawer a{padding:10px 0;border-bottom:1px solid var(--line)}
+#ec .drawer .x{position:absolute;top:22px;right:22px}
+/* buttons */
+#ec .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:15px 26px;border-radius:999px;font-weight:600;font-size:15.5px;background:var(--ink);color:#08140d;white-space:nowrap;border:1px solid transparent}
+#ec .btn:hover{background:var(--lime)}
+#ec .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+#ec .btn.ghost:hover{border-color:var(--leaf);color:var(--leaf);background:transparent}
+#ec .btn.sm{padding:10px 16px;font-size:14px;width:100%}
+#ec .btn.done{background:var(--leaf)}
+#ec .btn svg{width:16px;height:16px}
+/* hero */
+#ec .hero{min-height:calc(100svh - 120px);display:flex;align-items:center;padding:70px 0 90px}
+#ec .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);padding:7px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+#ec .eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--leaf);box-shadow:0 0 12px var(--leaf)}
+#ec .hero h1{font-size:clamp(42px,6.2vw,88px);line-height:1;letter-spacing:-.045em;font-weight:700;margin:26px 0 24px;max-width:15ch}
+#ec .hero h1 .line{display:block;overflow:hidden;padding-bottom:.06em}
+#ec .hero h1 .line>span{display:inline-block}
+#ec.js .hero h1 .line>span{transform:translateY(110%)}
+#ec .hero h1 .serif{font-weight:400;letter-spacing:-.02em}
+#ec .lede{font-size:clamp(17px,1.5vw,20px);color:var(--mute);max-width:560px}
+#ec .ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+#ec .search{display:flex;align-items:center;margin-top:22px;max-width:520px;border:1px solid var(--line);border-radius:999px;background:rgba(6,18,12,.55);backdrop-filter:blur(10px);padding:5px 5px 5px 20px}
+#ec .search input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--ink);font:inherit;font-size:15px;padding:8px 0}
+#ec .search input::placeholder{color:var(--dim)}
+#ec .search button{border:0;cursor:pointer;width:42px;height:42px;border-radius:50%;background:var(--leaf);color:#06120c;display:grid;place-items:center}
+#ec .search button svg{width:18px;height:18px}
+#ec .stats{display:grid;grid-template-columns:repeat(4,auto);gap:34px;margin-top:54px;justify-content:start}
+#ec .stats b{display:block;font-size:30px;font-weight:700;letter-spacing:-.03em}
+#ec .stats span{font-size:13.5px;color:var(--dim)}
+#ec .rv{opacity:1}
+#ec.js .rv{opacity:0;transform:translateY(34px)}
+/* sections */
+#ec .sec{padding:120px 0}
+#ec .kick{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--leaf);font-weight:600;margin-bottom:18px;display:block}
+#ec h2{font-size:clamp(34px,4.6vw,62px);line-height:1.04;letter-spacing:-.035em;font-weight:700;max-width:18ch}
+#ec .head{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:46px;flex-wrap:wrap}
+#ec .head p{color:var(--mute);max-width:440px}
+#ec .more{white-space:nowrap;display:inline-flex;align-items:center;gap:8px;color:var(--lime);font-weight:600;font-size:15px}
+#ec .more:hover{gap:12px}
+/* marquee */
+#ec .mq{border-block:1px solid var(--line);overflow:hidden;padding:20px 0;background:rgba(6,18,12,.5);backdrop-filter:blur(6px)}
+#ec .mq-in{display:flex;gap:56px;width:max-content;animation:ec-mq 38s linear infinite}
+#ec .mq span{display:flex;align-items:center;gap:14px;font-size:17px;color:var(--mute);white-space:nowrap}
+#ec .mq span::before{content:"";width:8px;height:8px;border-radius:50% 0;background:var(--leaf);transform:rotate(45deg)}
+@keyframes ec-mq{to{transform:translateX(-50%)}}
+/* values */
+#ec .vals{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+#ec .card{position:relative;border:1px solid var(--line);border-radius:22px;background:var(--card);padding:28px 24px;overflow:hidden;backdrop-filter:blur(8px)}
+#ec .card::before{content:"";position:absolute;inset:0;background:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),rgba(74,222,128,.14),transparent 70%);opacity:0;transition:opacity .4s}
+#ec .card:hover::before{opacity:1}
+#ec .card .n{font-family:"Fraunces",serif;font-style:italic;font-size:44px;line-height:1;color:var(--leaf);opacity:.85}
+#ec .card h3{font-size:19px;font-weight:650;margin:22px 0 8px;letter-spacing:-.01em}
+#ec .card p{font-size:14.5px;color:var(--mute)}
+/* categories */
+#ec .cats{display:grid;grid-template-columns:1.25fr 1fr 1fr;grid-template-rows:auto auto;gap:16px}
+#ec .cat{position:relative;border-radius:26px;overflow:hidden;border:1px solid var(--line);min-height:300px;display:flex;flex-direction:column;justify-content:flex-end;padding:26px;isolation:isolate}
+#ec .cat.big{grid-row:span 2;min-height:620px}
+#ec .cat img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
+#ec .cat:hover img{transform:scale(1.06)}
+#ec .cat::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(6,18,12,0) 25%,rgba(6,18,12,.92) 100%)}
+#ec .cat small{font-size:13px;color:var(--lime);font-weight:600;letter-spacing:.06em}
+#ec .cat h3{font-size:clamp(28px,3vw,40px);font-weight:700;letter-spacing:-.03em;margin:4px 0 6px}
+#ec .cat p{color:var(--mute);font-size:15px;max-width:360px}
+#ec .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+#ec .chips a{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(6,18,12,.55);color:var(--ink)}
+#ec .chips a:hover{border-color:var(--leaf);color:var(--leaf)}
+/* spotlight */
+#ec .spot{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center}
+#ec .spot .pic{perspective:1200px}
+#ec .spot .tilt{border-radius:30px;overflow:hidden;border:1px solid var(--line);transition:transform .25s ease-out;transform-style:preserve-3d;box-shadow:0 40px 120px -30px rgba(245,185,65,.35)}
+#ec .spot .tilt img{width:100%;aspect-ratio:4/5;object-fit:cover}
+#ec .spot h2{max-width:none;font-size:clamp(32px,3.8vw,52px)}
+#ec .spot .sub{font-size:19px;color:var(--mute);margin:20px 0 26px}
+#ec .ticks li{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);color:var(--mute)}
+#ec .ticks li::before{content:"✓";color:var(--leaf);font-weight:700}
+#ec .spot .price{font-size:28px;font-weight:700;margin:26px 0 22px;color:var(--honey)}
+/* products */
+#ec .tabs{display:flex;gap:6px;padding:5px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+#ec .tabs button{border:0;cursor:pointer;font:inherit;font-size:14.5px;font-weight:600;color:var(--mute);background:none;padding:9px 18px;border-radius:999px}
+#ec .tabs button.on{background:var(--ink);color:#08140d}
+#ec .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+#ec .pc{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:22px;background:var(--card);padding:12px 12px 14px}
+#ec .pc[hidden]{display:none}
+#ec .pc .ph{position:relative;display:block;border-radius:14px;overflow:hidden;background:#0f2419}
+#ec .pc .ph img{width:100%;aspect-ratio:3/4;object-fit:cover;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+#ec .pc:hover .ph img{transform:scale(1.05)}
+#ec .off{position:absolute;z-index:1;top:10px;left:10px;font-size:12px;font-weight:800;background:var(--honey);color:#1a1205;padding:4px 9px;border-radius:999px}
+#ec .pc h3{font-size:15.5px;font-weight:600;line-height:1.35;min-height:2.7em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding:0 4px}
+#ec .pc .price{font-weight:700;font-size:16.5px;padding:0 4px;margin-top:auto}
+#ec .pc del{color:var(--dim);font-weight:500;font-size:14px;margin-right:4px}
+/* trust */
+#ec .trust{display:grid;grid-template-columns:1fr 1.3fr;gap:60px;align-items:center}
+#ec .stars{font-size:28px;color:var(--honey);letter-spacing:4px}
+#ec blockquote{margin:26px 0 0;padding:26px;border:1px solid var(--line);border-radius:22px;background:var(--card);font-size:19px;color:var(--ink)}
+#ec blockquote cite{display:block;margin-top:12px;font-style:normal;font-size:14px;color:var(--dim)}
+#ec .reviews{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px;scrollbar-width:thin}
+#ec .reviews figure{flex:0 0 min(72%,320px);scroll-snap-align:start;border-radius:20px;overflow:hidden;border:1px solid var(--line)}
+/* founder */
+#ec .founder{border:1px solid var(--line);border-radius:32px;padding:clamp(30px,5vw,70px);background:linear-gradient(135deg,rgba(74,222,128,.08),rgba(245,185,65,.05));display:grid;grid-template-columns:1.4fr 1fr;gap:50px;align-items:center}
+#ec .founder p.big{font-size:clamp(22px,2.4vw,32px);line-height:1.35;letter-spacing:-.015em}
+#ec .founder .sig{margin-top:22px;color:var(--mute)}
+#ec .founder .sig b{color:var(--ink)}
+#ec .help{display:grid;gap:12px}
+#ec .help a{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px solid var(--line);border-radius:18px;background:rgba(6,18,12,.5)}
+#ec .help a:hover{border-color:var(--leaf)}
+#ec .help small{display:block;color:var(--dim);font-size:13px}
+#ec .help svg{width:22px;height:22px;color:var(--leaf);flex:none}
+/* footer */
+#ec footer{position:relative;z-index:2;border-top:1px solid var(--line);padding:70px 0 40px;margin-top:40px;background:rgba(4,12,8,.7)}
+#ec .fcols{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px}
+#ec .fcols h4{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:16px;font-weight:600}
+#ec .fcols li{margin:9px 0;color:var(--mute);font-size:15px}
+#ec .fcols a:hover{color:var(--leaf)}
+#ec .fine{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:50px;padding-top:24px;border-top:1px solid var(--line);color:var(--dim);font-size:13.5px}
+#ec .mcta{display:none}
+#ec .toast{position:fixed;left:50%;bottom:24px;z-index:70;transform:translate(-50%,160%);background:var(--ink);color:#08140d;padding:12px 20px;border-radius:999px;font-weight:600;font-size:15px;transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .3s;display:flex;gap:12px;align-items:center;opacity:0;visibility:hidden}
+#ec .toast a{text-decoration:underline}
+#ec .toast.on{transform:translate(-50%,0);opacity:1;visibility:visible}
+/* responsive */
+@media (max-width:1100px){#ec .vals{grid-template-columns:repeat(3,1fr)}#ec .grid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:900px){
+ #ec .links,#ec .tools .hide-m{display:none}#ec .menu{display:grid}
+ #ec .cats{grid-template-columns:1fr 1fr}#ec .cat.big{grid-row:auto;grid-column:span 2;min-height:420px}
+ #ec .spot,#ec .trust,#ec .founder{grid-template-columns:1fr;gap:40px}
+ #ec .fcols{grid-template-columns:1fr 1fr}
+ #ec .sec{padding:90px 0}
+}
+/* phones: mobile-first layout (swipe rows instead of long stacks, thumb-sized buttons) */
+@media (max-width:767px){
+ #ec{font-size:16px;line-height:1.55}#ec .wrap{padding:0 16px}
+ #ec .bar{font-size:12px;padding:7px 12px}
+ #ec .nav{width:calc(100% - 16px);top:8px;margin-top:8px;padding:6px 6px 6px 8px}#ec .logo span{display:none}#ec .logo img{width:40px;height:40px}
+ #ec .ic{width:44px;height:44px}
+ #ec .drawer{font-size:20px;padding:76px 22px 24px;overflow-y:auto}#ec .drawer a{padding:12px 0}
+ #ec .hero{padding:26px 0 34px;min-height:0}
+ #ec .eyebrow{font-size:11px;letter-spacing:.12em;padding:6px 12px}
+ #ec .hero h1{font-size:clamp(33px,9.4vw,44px);line-height:1.02;margin:18px 0 14px;max-width:none}
+ #ec .lede{font-size:16px}
+ #ec .ctas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+ #ec .btn{padding:14px 16px;font-size:15px;min-height:48px}#ec .btn svg{display:none}
+ #ec .search{margin-top:12px;max-width:none;padding:4px 4px 4px 18px}#ec .search input{font-size:16px;padding:10px 0}#ec .search button{width:44px;height:44px}
+ #ec .stats{grid-template-columns:repeat(4,1fr);gap:4px;margin-top:22px;padding:14px 6px;border:1px solid var(--line);border-radius:18px;background:rgba(6,18,12,.55);backdrop-filter:blur(8px);text-align:center}
+ #ec .stats b{font-size:20px}#ec .stats span{display:block;font-size:11.5px;line-height:1.25}
+ #ec .mq{padding:13px 0}#ec .mq span{font-size:14px}#ec .mq-in{gap:34px}
+ #ec .sec{padding:54px 0}
+ #ec .kick{font-size:11.5px;margin-bottom:10px}
+ #ec h2{font-size:clamp(28px,8.2vw,36px);max-width:none}
+ #ec .head{margin-bottom:20px;gap:8px 12px;align-items:end}#ec .head p{font-size:15px}
+ #ec .more{font-size:14.5px;min-height:44px}
+ /* swipe rows: bleed to the screen edges, snap card by card */
+ #ec .vals,#ec .grid,#ec .reviews,#ec .chips{display:flex;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px;padding:2px 16px 6px;scroll-padding:0 16px;gap:10px}
+ #ec .vals::-webkit-scrollbar,#ec .grid::-webkit-scrollbar,#ec .reviews::-webkit-scrollbar,#ec .chips::-webkit-scrollbar{display:none}
+ #ec .vals .card{flex:0 0 68%;scroll-snap-align:start;padding:20px 18px}
+ #ec .card .n{font-size:32px}#ec .card h3{font-size:17px;margin:12px 0 6px}#ec .card p{font-size:14px}
+ #ec .grid .pc{flex:0 0 calc((100% - 22px)/2.15);scroll-snap-align:start;padding:8px 8px 10px;border-radius:18px;gap:8px}
+ #ec .pc h3{font-size:14px;padding:0 2px}#ec .pc .price{font-size:15.5px;padding:0 2px}#ec .pc del{font-size:12.5px}
+ #ec .btn.sm{padding:11px 10px;font-size:14px;min-height:44px}
+ #ec .tabs{width:100%;overflow-x:auto;scrollbar-width:none}#ec .tabs button{flex:1 0 auto;padding:10px 14px;min-height:44px}
+ #ec .cats{grid-template-columns:1fr 1fr;gap:10px}
+ #ec .cat{min-height:168px;padding:14px;border-radius:20px}#ec .cat.big{grid-row:auto;grid-column:span 2;min-height:230px}
+ #ec .cat h3{font-size:21px;margin:2px 0 0}#ec .cat.big h3{font-size:28px}#ec .cat small{font-size:11px}
+ #ec .cat p{display:none}#ec .cat.big p{display:block;font-size:14px}
+ #ec .chips{margin-top:14px;padding-bottom:4px}#ec .chips a{flex:none;font-size:13.5px;padding:10px 14px;scroll-snap-align:start}
+ #ec .spot{gap:24px}#ec .spot .tilt{border-radius:22px}#ec .spot .tilt img{aspect-ratio:1/1}
+ #ec .spot h2{font-size:clamp(26px,7.4vw,34px)}#ec .spot .sub{font-size:16px;margin:12px 0 14px}
+ #ec .ticks li{padding:9px 0;font-size:15px}#ec .spot .price{font-size:24px;margin:16px 0 14px}
+ #ec .trust{gap:26px}#ec .stars{font-size:22px}#ec blockquote{font-size:16.5px;padding:18px;margin-top:18px}
+ #ec .reviews figure{flex:0 0 78%}
+ #ec .founder{padding:24px 18px;border-radius:24px;gap:24px}#ec .founder p.big{font-size:19px}
+ #ec .help a{padding:13px 14px;min-height:56px}
+ #ec footer{padding:44px 0 calc(var(--ec-bb,60px) + 34px + env(safe-area-inset-bottom));margin-top:20px}
+ #ec .fcols{grid-template-columns:1fr 1fr;gap:26px 18px}#ec .fcols>div:first-child{grid-column:span 2}
+ #ec .fcols h4{font-size:12px;margin-bottom:8px}#ec .fcols li{margin:0;font-size:14.5px}#ec .fcols li a{display:block;padding:7px 0}
+ #ec .fine{margin-top:30px;font-size:12.5px}
+ #ec .toast{bottom:calc(var(--ec-bb,60px) + 16px + env(safe-area-inset-bottom));max-width:calc(100% - 24px)}
+}
+@media (max-width:370px){#ec .stats b{font-size:18px}#ec .stats span{font-size:10.5px}#ec .ctas .btn{font-size:14px;padding:13px 10px}}
+@media (prefers-reduced-motion:reduce){#ec .mq-in{animation:none}#ec *{transition:none!important}}
+'''
+
+ICON = {
+ 'search': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+ 'user': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+ 'heart': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+ 'cart': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6.2"/><circle cx="10" cy="20.5" r="1.2"/><circle cx="17" cy="20.5" r="1.2"/></svg>',
+ 'menu': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
+ 'x': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+ 'arrow': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+ 'phone': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
+ 'chat': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 20l1.4-4.2A8 8 0 1 1 8.6 19z"/></svg>',
+ 'mail': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+ 'ig': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/></svg>',
+}
+
+hp = honey['prices']['price_range']
+BODY = f'''
+<div id="ec">
+<canvas id="ec-gl" aria-hidden="true"></canvas><div class="glow" aria-hidden="true"></div>
+<p class="bar">Delivered across India · Call or WhatsApp <a href="tel:+917012045854">+91 70120 45854</a></p>
+<header class="nav" id="ec-top">
+  <a class="logo" href="{SITE}/" aria-label="EcoCart home"><img src="{UP}/2024/05/ecocart-removebg.png" alt="ecocart.co.in" width="44" height="44"><span>EcoCart</span></a>
+  <nav class="links" aria-label="Main">
+    <a href="{SITE}/shop/">Shop</a><a href="{SITE}/product-category/eco-goods/">Eco Goods</a><a href="{SITE}/product-category/gift/">Gifts</a><a href="{SITE}/product-category/men/thobes-shirts-2/">Thobes</a><a href="{SITE}/better-honey/">Better Honey</a><a href="{SITE}/blog/">Blog</a><a href="{SITE}/about-us/">About Us</a>
+  </nav>
+  <div class="tools">
+    <a class="ic hide-m" href="{SITE}/wishlist/" aria-label="Wishlist">{ICON['heart']}</a>
+    <a class="ic hide-m" href="{SITE}/my-account/" aria-label="Account">{ICON['user']}</a>
+    <a class="ic" href="{SITE}/cart/" aria-label="Cart">{ICON['cart']}<b id="ec-count"></b></a>
+    <button class="ic menu" type="button" aria-label="Open menu" style="background:none;cursor:pointer">{ICON['menu']}</button>
+  </div>
+</header>
+<div class="drawer" aria-hidden="true">
+  <button class="ic x" type="button" aria-label="Close menu" style="background:none;cursor:pointer">{ICON['x']}</button>
+  <a href="{SITE}/shop/">Shop all</a><a href="{SITE}/product-category/eco-goods/">Eco Goods</a><a href="{SITE}/product-category/gift/">Gifts</a><a href="{SITE}/product-category/men/thobes-shirts-2/">Thobes</a><a href="{SITE}/product-category/women/">Women</a><a href="{SITE}/better-honey/">Better Honey</a><a href="{SITE}/blog/">Blog</a><a href="{SITE}/my-account/">My account</a><a href="{SITE}/wishlist/">Wishlist</a><a href="{SITE}/contact/">Contact</a>
+</div>
+
+<main>
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow rv"><i></i>Since 2021 · Made in Kerala</span>
+    <h1><span class="line"><span>Eco-friendly products</span></span><span class="line"><span>&amp; personalised gifts,</span></span><span class="line"><span class="serif grad">right from source.</span></span></h1>
+    <p class="lede rv">Chemical-free honey, coconut goods, spices and natural soaps from small Kerala makers, plus handmade gift hampers and premium thobes. Delivered across India.</p>
+    <div class="ctas rv">
+      <a class="btn" href="{SITE}/product-category/eco-goods/">Shop eco goods {ICON['arrow']}</a>
+      <a class="btn ghost" href="{SITE}/product-category/gift/">Explore gifts</a>
+    </div>
+    <form class="search rv" role="search" action="{SITE}/" method="get">
+      <label for="ec-s" style="position:absolute;left:-9999px">Search products</label>
+      <input id="ec-s" type="search" name="s" placeholder="Search honey, coconut oil, thobes…"><input type="hidden" name="post_type" value="product">
+      <button type="submit" aria-label="Search">{ICON['search']}</button>
+    </form>
+    <div class="stats rv">
+      <div><b>94+</b><span>natural products</span></div>
+      <div><b>5★</b><span>Google rating</span></div>
+      <div><b>4–10</b><span>days, pan-India delivery</span></div>
+      <div><b>2021</b><span>serving since</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="mq" aria-hidden="true"><div class="mq-in">{''.join('<span>'+t+'</span>' for t in ['Offers on UPI','Delivered across India','Track your order','5-star rated on Google','Chemical-free','Supports small businesses','Secure Razorpay checkout','Based in Thiruvananthapuram']*2)}</div></div>
+
+<section class="sec" id="why">
+  <div class="wrap">
+    <div class="head"><div><span class="kick rv">Welcome to EcoCart</span><h2 class="rv">Why buy from us <span class="serif grad">♻</span></h2></div><p class="rv">Promoting health, supporting small businesses, and ensuring sustainability with the best prices and secure checkout.</p></div>
+    <div class="vals">
+      <div class="card rv"><span class="n">01</span><h3>Healthy products</h3><p>Chemical-free, pure, farm-sourced for better health.</p></div>
+      <div class="card rv"><span class="n">02</span><h3>We promote small business</h3><p>Supporting small business entrepreneurs through our platform.</p></div>
+      <div class="card rv"><span class="n">03</span><h3>Sustainability</h3><p>By buying our products, you contribute positively to nature.</p></div>
+      <div class="card rv"><span class="n">04</span><h3>Best price</h3><p>Best prices, durable products, maximum savings assured.</p></div>
+      <div class="card rv"><span class="n">05</span><h3>Secure checkout</h3><p>Secure payments via Razorpay and Shiprocket Checkout.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="shop" style="padding-top:20px">
+  <div class="wrap">
+    <div class="head"><div><span class="kick rv">Shop by category</span><h2 class="rv">Green goodies galore.</h2></div><a class="more rv" href="{SITE}/shop/">View all products {ICON['arrow']}</a></div>
+    <div class="cats">
+      <a class="cat big rv" href="{SITE}/product-category/eco-goods/"><img src="{UP}/2024/05/isabela-kronemberger-QXaTcvJEc-8-unsplash-1.jpg" alt="Eco goods: honey and natural products" loading="lazy" decoding="async"><small>29 PRODUCTS</small><h3>Eco Goods</h3><p>All chemical free and right from the source.</p></a>
+      <a class="cat rv" href="{SITE}/product-category/gift/"><img src="{P[6251]['images'][0]['thumbnail']}" alt="Personalised gift hampers" loading="lazy" decoding="async"><small>11 PRODUCTS</small><h3>Gifts</h3><p>Special gift, special person, special moment.</p></a>
+      <a class="cat rv" href="{SITE}/product-category/men/"><img src="{UP}/2024/05/IMG-20240504-WA0222.jpg" alt="Men's thobes" loading="lazy" decoding="async"><small>41 PRODUCTS</small><h3>Men</h3><p>Thobes, shirts, jackets &amp; coats.</p></a>
+      <a class="cat rv" href="{SITE}/product-category/coconut-shell-products/"><img src="{UP}/2024/08/7.jpg" alt="Handmade coconut shell products" loading="lazy" decoding="async"><small>HANDMADE</small><h3>Coconut Shell</h3><p>Bowls, cups and decor, zero plastic.</p></a>
+      <a class="cat rv" href="{SITE}/product-category/women/"><img src="{UP}/2023/04/dresses-1-2.jpg" alt="Women's clothing" loading="lazy" decoding="async"><small>13 PRODUCTS</small><h3>Women</h3><p>"Green &amp; Glam: elevating style, sustainably."</p></a>
+    </div>
+    <div class="chips rv" aria-label="Eco goods categories">{subchips}</div>
+  </div>
+</section>
+
+<section class="sec" id="honey">
+  <div class="wrap spot">
+    <div class="pic rv"><div class="tilt" data-tilt><img src="{honey['images'][0]['thumbnail']}" alt="Better Honey with dry fruits by EcoCart" width="500" height="667" loading="lazy" decoding="async"></div></div>
+    <div>
+      <span class="kick rv">Top seller</span>
+      <h2 class="rv">Better Honey <span class="serif grad">| A Delicious Fusion of Honey and Dry Fruits</span></h2>
+      <p class="sub rv">Experience the exquisite taste of nature with our Better Honey, a top seller on Ecocart.</p>
+      <ul class="ticks rv"><li>Pure honey with premium dry fruits</li><li>No added sugar or preservatives</li><li>A healthy gift for loved ones</li></ul>
+      <p class="price rv" data-id="7184">{rs(hp['min_amount'])} – {rs(hp['max_amount'])}</p>
+      <div class="ctas rv" style="margin-top:0"><a class="btn" href="{honey['permalink']}">Buy Better Honey {ICON['arrow']}</a><a class="btn ghost" href="{SITE}/better-honey/">Read the story</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="deals">
+  <div class="wrap">
+    <div class="head"><div><span class="kick rv">The best discounts this week</span><h2 class="rv">Don't miss this week's sales</h2></div>
+      <div class="tabs rv" role="tablist"><button class="on" data-t="all" type="button">All</button><button data-t="eco" type="button">Eco Goods</button><button data-t="gift" type="button">Gifts</button></div></div>
+    <div class="grid" id="ec-deals">
+{deals}
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="thobes" style="padding-top:20px">
+  <div class="wrap">
+    <div class="head"><div><span class="kick rv">Get the best outfit of your life</span><h2 class="rv">Best seller products</h2></div><a class="more rv" href="{SITE}/product-category/men/thobes-shirts-2/">All thobes {ICON['arrow']}</a></div>
+    <div class="grid">
+{thobes}
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="reviews">
+  <div class="wrap trust">
+    <div>
+      <span class="kick rv">Testimonials</span>
+      <div class="stars rv" aria-label="5 out of 5 stars">★★★★★</div>
+      <h2 class="rv" style="font-size:clamp(28px,3.2vw,42px);margin-top:14px">We are proud to hold a 5-star rating on Google Business.</h2>
+      <p class="rv" style="color:var(--mute);margin-top:16px">Reflecting our commitment to excellence and customer satisfaction. Go ahead and place your orders for your loved ones with confidence.</p>
+      <blockquote class="rv">“The product was worth the money. Tasty and healthy. Quality nuts and honey. Variety taste. Delivered before expected date. Very happy!”<cite>Nivedita, EcoCart customer</cite></blockquote>
+    </div>
+    <div class="reviews rv">{testi}</div>
+  </div>
+</section>
+
+<section class="sec" id="about" style="padding-top:20px">
+  <div class="wrap">
+    <div class="founder">
+      <div>
+        <span class="kick rv">#Trustme</span>
+        <p class="big rv">Established in 2021, our <a href="{IG}" class="grad" target="_blank" rel="noopener">Instagram</a> showcases our passion for eco-friendly products. Over the years, we've garnered trust through delivering numerous orders with excellence.</p>
+        <p class="sig rv"><b>Roshan Shaji</b> · Founder, EcoCart</p>
+        <div class="ctas rv"><a class="btn ghost" href="{SITE}/about-us/">About us</a><a class="btn ghost" href="{SITE}/blog/">Visit our blog</a></div>
+      </div>
+      <div class="help rv">
+        <a href="tel:+917012045854">{ICON['phone']}<span>Call 7012045854<small>Mon – Fri, 9 AM – 6 PM</small></span></a>
+        <a href="{WA}" target="_blank" rel="noopener">{ICON['chat']}<span>WhatsApp +91 70120 45854<small>Quick replies on orders</small></span></a>
+        <a href="mailto:contact@ecocart.co.in">{ICON['mail']}<span>contact@ecocart.co.in<small>Write to us anytime</small></span></a>
+        <a href="{IG}" target="_blank" rel="noopener">{ICON['ig']}<span>@ecocart.co.in<small>Follow us on Instagram</small></span></a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fcols">
+      <div><a class="logo" href="{SITE}/"><img src="{UP}/2024/05/ecocart-removebg.png" alt="EcoCart logo" width="44" height="44" loading="lazy"><span>EcoCart</span></a><p style="color:var(--mute);margin-top:16px;font-size:15px;max-width:320px">Eco friendly products, personalised gifts and natural foods, right from source. Kerala, India.</p></div>
+      <div><h4>Shop</h4><ul><li><a href="{SITE}/shop/">All products</a></li><li><a href="{SITE}/product-category/eco-goods/">Eco Goods</a></li><li><a href="{SITE}/product-category/gift/">Gifts</a></li><li><a href="{SITE}/product-category/men/">Men</a></li><li><a href="{SITE}/product-category/women/">Women</a></li><li><a href="{SITE}/red-mountain-kitkat-tower/">Red Mountain on sale</a></li></ul></div>
+      <div><h4>Let us help you</h4><ul><li><a href="{SITE}/my-account/">Your orders</a></li><li><a href="{SITE}/order-tracking/">Track your order</a></li><li><a href="{SITE}/shipping-and-delivery/">Shipping and delivery</a></li><li><a href="{SITE}/refund_returns-2/">Returns &amp; replacements</a></li><li><a href="{SITE}/faq/">FAQ</a></li></ul></div>
+      <div><h4>Company</h4><ul><li><a href="{SITE}/about-us/">About us</a></li><li><a href="{SITE}/contact/">Contact</a></li><li><a href="{SITE}/blog/">Blog</a></li><li><a href="{SITE}/privacy-policy-2/">Privacy policy</a></li><li><a href="{SITE}/terms-and-conditions/">Terms and conditions</a></li></ul></div>
+    </div>
+    <div class="fine"><span>Copyright 2026 © EcoCart. All rights reserved.</span><span>We accept UPI, cards &amp; net banking via Razorpay</span></div>
+  </div>
+</footer>
+<div class="mcta"><a class="btn" href="{SITE}/shop/">Shop all products {ICON['arrow']}</a></div>
+<div class="toast" role="status" aria-live="polite"><span>Added to basket</span><a href="{SITE}/cart/">View cart</a></div>
+</div>
+'''
+
+JS = r'''
+<script data-no-optimize="1" src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script data-no-optimize="1" src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script data-no-optimize="1" src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+<script data-no-optimize="1">
+(function(){
+var API='/wp-json/wc/store/v1/';
+function boot(){
+  var root=document.getElementById('ec');if(!root||root.dataset.boot)return;root.dataset.boot=1;
+  var gdpr=function(){var gd=document.querySelector('.site-gdpr .gdpr-text');if(gd)gd.innerHTML='We use cookies to give you a better shopping experience. <a href="/privacy-policy-2/">Privacy policy</a>'};
+  document.readyState==='loading'?document.addEventListener('DOMContentLoaded',gdpr):gdpr();
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.EC={scroll:0,reduce:reduce};
+  // mobile menu
+  var dr=root.querySelector('.drawer');
+  root.querySelector('.menu').addEventListener('click',function(){dr.classList.add('on');dr.setAttribute('aria-hidden','false')});
+  dr.querySelector('.x').addEventListener('click',function(){dr.classList.remove('on');dr.setAttribute('aria-hidden','true')});
+  // tabs
+  root.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){
+    root.querySelectorAll('.tabs button').forEach(function(x){x.classList.toggle('on',x===b)});
+    root.querySelectorAll('#ec-deals .pc').forEach(function(c){c.hidden=!(b.dataset.t==='all'||c.dataset.tab===b.dataset.t)});
+    if(window.ScrollTrigger)ScrollTrigger.refresh()})});
+  // live cart count + live prices + ajax add to cart (same origin only)
+  var same=location.hostname.indexOf('ecocart.co.in')>-1;
+  var count=document.getElementById('ec-count'),toast=root.querySelector('.toast'),tt;
+  function setCount(c){if(count)count.textContent=c>0?c:''}
+  function fromFrag(f){var h=f&&f['div.cart-count'];if(!h)return;var m=h.match(/>\s*(\d+)\s*</);if(m)setCount(+m[1])}
+  if(same){
+    if(/woocommerce_items_in_cart=1/.test(document.cookie))fetch('/?wc-ajax=get_refreshed_fragments',{method:'POST',credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){fromFrag(d.fragments)}).catch(function(){});
+    var ids=[].map.call(root.querySelectorAll('[data-id]'),function(e){return e.dataset.id});
+    fetch(API+'products?per_page=50&include='+ids.join(',')).then(function(r){return r.json()}).then(function(list){list.forEach(function(p){
+      var pr=p.prices,m=Math.pow(10,pr.currency_minor_unit),f=function(v){v=v/m;return '₹'+v.toLocaleString('en-IN',{maximumFractionDigits:v%1?2:0})},h;
+      if(pr.price_range)h=f(pr.price_range.min_amount)+' – '+f(pr.price_range.max_amount);
+      else if(pr.regular_price!==pr.price&&+pr.price>0)h='<del>'+f(pr.regular_price)+'</del> '+f(pr.price);else h=f(pr.price);
+      var nm=document.createElement('textarea');nm.innerHTML=p.name;nm=nm.value.normalize('NFKC').replace(/_/g,' – ');
+      root.querySelectorAll('[data-id="'+p.id+'"]').forEach(function(el){var t=el.classList.contains('price')?el:el.querySelector('.price');if(t)t.innerHTML=h;var a=el.querySelector('h3 a');if(a)a.textContent=nm})})}).catch(function(){});
+    root.querySelectorAll('[data-add]').forEach(function(a){a.addEventListener('click',function(e){
+      if(!window.fetch)return;e.preventDefault();var t=a.textContent;a.textContent='Adding…';
+      fetch('/?wc-ajax=add_to_cart',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'product_id='+a.dataset.add+'&quantity=1'})
+      .then(function(r){return r.json()}).then(function(d){if(!d||d.error){location.href=a.href;return}
+        a.textContent='Added ✓';a.classList.add('done');setTimeout(function(){a.textContent=t;a.classList.remove('done')},2200);
+        toast.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('on')},3200);
+        fromFrag(d.fragments);
+        if(window.jQuery)jQuery(document.body).trigger('added_to_cart',[d.fragments,d.cart_hash])})
+      .catch(function(){location.href=a.href})})});
+  }
+  if(!window.gsap||!window.ScrollTrigger||reduce){addEventListener('scroll',function(){var h=document.documentElement;EC.scroll=h.scrollTop/Math.max(1,h.scrollHeight-innerHeight)},{passive:true});return}
+  root.classList.add('js');document.documentElement.classList.add('ec-lock');
+  gsap.registerPlugin(ScrollTrigger);
+  if(window.Lenis&&matchMedia('(pointer:fine)').matches){var lenis=new Lenis({lerp:.1});lenis.on('scroll',ScrollTrigger.update);gsap.ticker.add(function(t){lenis.raf(t*1000)});gsap.ticker.lagSmoothing(0)}
+  ScrollTrigger.create({start:0,end:'max',onUpdate:function(s){EC.scroll=s.progress}});
+  var tl=gsap.timeline({delay:.1});
+  tl.to('#ec .hero h1 .line>span',{y:0,duration:1.2,ease:'expo.out',stagger:.1})
+    .to('#ec .hero .rv',{opacity:1,y:0,duration:1,ease:'expo.out',stagger:.07},'-=.95');
+  gsap.utils.toArray('#ec .rv').forEach(function(el){if(el.closest('.hero'))return;
+    gsap.to(el,{opacity:1,y:0,duration:1.05,ease:'expo.out',scrollTrigger:{trigger:el,start:'top 90%'}})});
+  gsap.utils.toArray('#ec .cat img').forEach(function(im){gsap.fromTo(im,{yPercent:-6},{yPercent:6,ease:'none',scrollTrigger:{trigger:im.parentNode,start:'top bottom',end:'bottom top',scrub:true}})});
+  var nav=root.querySelector('.nav'),mcta=root.querySelector('.mcta'),last=0;
+  ScrollTrigger.create({start:0,end:'max',onUpdate:function(s){var y=s.scroll();nav.classList.toggle('hide',y>last&&y>400);mcta.classList.toggle('on',y>innerHeight*.9&&y<s.end-innerHeight);last=y}});
+  if(matchMedia('(pointer:fine)').matches){
+    root.querySelectorAll('.card').forEach(function(c){c.addEventListener('mousemove',function(e){var r=c.getBoundingClientRect();c.style.setProperty('--mx',(e.clientX-r.left)+'px');c.style.setProperty('--my',(e.clientY-r.top)+'px')})});
+    var t=root.querySelector('[data-tilt]');if(t){var p=t.parentNode;p.addEventListener('mousemove',function(e){var r=p.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;t.style.transform='rotateY('+(x*12)+'deg) rotateX('+(-y*12)+'deg)'});p.addEventListener('mouseleave',function(){t.style.transform=''})}
+  }
+  addEventListener('load',function(){ScrollTrigger.refresh()});
+}
+boot();
+})();
+</script>
+<script type="module" data-no-optimize="1">
+const canvas=document.getElementById('ec-gl');
+const mobile=matchMedia('(max-width:700px)').matches;
+const ok=(()=>{try{const c=document.createElement('canvas');return !!(window.WebGLRenderingContext&&(c.getContext('webgl2')||c.getContext('webgl')))}catch(e){return false}})();
+const lowEnd=(navigator.hardwareConcurrency||4)<=2||(navigator.connection&&navigator.connection.saveData);
+if(!ok||lowEnd){canvas.remove()}else{
+const start=async()=>{
+const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js');
+let renderer;try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:true,powerPreference:'high-performance'})}catch(e){canvas.remove();return}
+renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.5:2));renderer.setSize(innerWidth,innerHeight,false);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,100);camera.position.set(0,0,mobile?10:7.4);
+const N=mobile?8000:20000;
+const a=new Float32Array(N*3),b=new Float32Array(N*3),c=new Float32Array(N*3),rnd=new Float32Array(N),kind=new Float32Array(N);
+const ga=Math.PI*(3-Math.sqrt(5));
+for(let i=0;i<N;i++){
+  // A: a leaf (blade + midrib + veins + stem)
+  let x,y,z,k=0;const r0=Math.random();
+  if(r0<.1){const t=Math.random();x=-2.3+t*4.4;y=0;k=1}            // midrib + stem
+  else if(r0<.22){const t=Math.random(),side=Math.random()<.5?-1:1,s=-1.6+Math.floor(Math.random()*7)*.5;x=s+t*.7;const w=Math.pow(Math.max(0,1-Math.pow((x)/2.1,2)),.75)*1.05;y=side*t*w*.95;k=1}
+  else{x=-2.1+Math.random()*4.2;const w=Math.pow(Math.max(0,1-Math.pow(x/2.1,2)),.75)*1.05*(1+.12*Math.sin(x*1.3));y=(Math.random()*2-1)*w}
+  z=.35*y*y-.12*x*x*.4+(Math.random()-.5)*.05;
+  // tilt leaf
+  const ca=Math.cos(.55),sa=Math.sin(.55);a[i*3]=x*ca-y*sa;a[i*3+1]=x*sa+y*ca;a[i*3+2]=z;
+  // B: globe (fibonacci sphere)
+  const yy=1-(i/(N-1))*2,rr=Math.sqrt(1-yy*yy),th=ga*i,R=2.15;
+  b[i*3]=Math.cos(th)*rr*R;b[i*3+1]=yy*R;b[i*3+2]=Math.sin(th)*rr*R;
+  // C: rolling field
+  const g=Math.ceil(Math.sqrt(N)),gx=i%g,gz=Math.floor(i/g);
+  c[i*3]=(gx/g-.5)*16;c[i*3+1]=-1.8;c[i*3+2]=(gz/g-.5)*16;
+  rnd[i]=Math.random();kind[i]=k;
+}
+const geo=new THREE.BufferGeometry();
+geo.setAttribute('position',new THREE.BufferAttribute(a,3));geo.setAttribute('pB',new THREE.BufferAttribute(b,3));
+geo.setAttribute('pC',new THREE.BufferAttribute(c,3));geo.setAttribute('rnd',new THREE.BufferAttribute(rnd,1));geo.setAttribute('kind',new THREE.BufferAttribute(kind,1));
+const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+uniforms:{uT:{value:0},uM:{value:0},uMouse:{value:new THREE.Vector2()},uPR:{value:renderer.getPixelRatio()},uS:{value:mobile?1.2:1}},
+vertexShader:`
+uniform float uT,uM,uPR,uS;uniform vec2 uMouse;attribute vec3 pB,pC;attribute float rnd,kind;varying float vR,vD,vK,vY;
+vec3 h3(vec3 p){p=vec3(dot(p,vec3(127.1,311.7,74.7)),dot(p,vec3(269.5,183.3,246.1)),dot(p,vec3(113.5,271.9,124.6)));return -1.+2.*fract(sin(p)*43758.5453);}
+float nz(vec3 p){vec3 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);
+return mix(mix(mix(dot(h3(i),f),dot(h3(i+vec3(1,0,0)),f-vec3(1,0,0)),u.x),mix(dot(h3(i+vec3(0,1,0)),f-vec3(0,1,0)),dot(h3(i+vec3(1,1,0)),f-vec3(1,1,0)),u.x),u.y),
+mix(mix(dot(h3(i+vec3(0,0,1)),f-vec3(0,0,1)),dot(h3(i+vec3(1,0,1)),f-vec3(1,0,1)),u.x),mix(dot(h3(i+vec3(0,1,1)),f-vec3(0,1,1)),dot(h3(i+vec3(1,1,1)),f-vec3(1,1,1)),u.x),u.y),u.z);}
+void main(){
+  float m=clamp(uM,0.,2.);float k2=smoothstep(0.,1.,clamp(m-1.,0.,1.));
+  float d=rnd*.35;float e1=smoothstep(0.,1.,clamp((m-d)/(1.-d*.5),0.,1.));
+  vec3 p=mix(position,pB,e1);
+  vec3 cp=pC;cp.y+=sin(cp.x*.6+uT*.8)*.4+cos(cp.z*.5+uT*.6)*.4;
+  p=mix(p,cp,k2);
+  float n=nz(p*.9+uT*.22);
+  p+=vec3(0.,0.,1.)*n*.25*(1.-e1)*(1.-k2);           // leaf flutter
+  p+=normalize(p+.0001)*n*.32*e1*(1.-k2);             // globe breathing
+  p.xy+=uMouse*.25*(1.-k2);
+  vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;
+  gl_PointSize=(1.5+rnd*2.3+kind*.8)*uS*uPR*(6./-mv.z);
+  vR=rnd;vD=n;vK=kind*(1.-e1);vY=p.y;
+}`,
+fragmentShader:`
+varying float vR,vD,vK,vY;
+void main(){vec2 uv=gl_PointCoord-.5;float d=length(uv);if(d>.5)discard;float al=smoothstep(.5,0.,d);
+vec3 deep=vec3(.13,.55,.3),leaf=vec3(.29,.87,.5),lime=vec3(.75,.95,.4),honey=vec3(.96,.73,.25);
+vec3 col=mix(deep,leaf,smoothstep(-.3,.3,vD+vR*.3-.1));col=mix(col,lime,smoothstep(.75,1.,vR)*.6);
+col=mix(col,honey,step(.975,vR)*.9+vK*.55);
+gl_FragColor=vec4(col,al*.6);}`});
+const grp=new THREE.Group();grp.add(new THREE.Points(geo,mat));scene.add(grp);
+const wide=()=>innerWidth>1000;
+let mx=0,my=0,tx=0,ty=0,m=0;
+addEventListener('pointermove',e=>{tx=(e.clientX/innerWidth-.5)*2;ty=-(e.clientY/innerHeight-.5)*2},{passive:true});
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
+let vis=true;document.addEventListener('visibilitychange',()=>{vis=!document.hidden});
+const clock=new THREE.Clock();const reduce=window.EC&&EC.reduce;
+function frame(){requestAnimationFrame(frame);if(!vis)return;
+  const t=clock.getElapsedTime();mx+=(tx-mx)*.05;my+=(ty-my)*.05;
+  const s=window.EC?EC.scroll:0;const target=s<.12?0:s<.55?Math.min(1,(s-.12)/.18):1+Math.min(1,(s-.55)/.25);
+  m+=(target-m)*.06;
+  mat.uniforms.uT.value=reduce?0:t;mat.uniforms.uM.value=m;mat.uniforms.uMouse.value.set(mx,my);
+  grp.rotation.y=(reduce?0:Math.sin(t*.25)*.25)*(1-Math.min(1,m))+(m>.5?(reduce?0:t*.08)+s*2:0)+mx*.25;
+  grp.rotation.x=my*.15+(m>1?(m-1)*.35:0);grp.rotation.z=(reduce?0:Math.sin(t*.4)*.05);
+  grp.position.x=(wide()?2.5:0)*(1-Math.min(1,m));grp.position.y=wide()?0:(mobile?1.6:.8)*(1-Math.min(1,m));
+  renderer.render(scene,camera)}
+frame();
+};
+// load 3D after first paint so text and LCP come first
+('requestIdleCallback' in window)?requestIdleCallback(start,{timeout:1500}):setTimeout(start,600);
+}
+</script>
+'''
+
+FONTS = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Fraunces:ital,wght@1,400;1,500&display=swap" rel="stylesheet">\n'
+
+fragment = '<style>' + CSS + '</style>\n' + BODY + JS
+open(os.path.join(HERE, 'fragment.html'), 'w').write(fragment)
+
+HEAD = '''<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eco Friendly Products | Personalized gift| Right From Source</title>
+<meta name="description" content="Shop eco friendly products at EcoCart and reduce your carbon footprint. Discover sustainable solutions for a greener lifestyle. And Buy spices">
+<link rel="canonical" href="https://ecocart.co.in/"><meta name="robots" content="noindex"></head><body>'''
+open(os.path.join(HERE, 'preview.html'), 'w').write(HEAD + fragment + '</body></html>')
+print('fragment', len(fragment))
+
+# Elementor data for page 4324: one full-width container holding one HTML widget with the fragment
+Z = {"unit": "px", "top": "0", "right": "0", "bottom": "0", "left": "0", "isLinked": True}
+EL = [{"id": "ec3d001", "elType": "container", "isInner": False,
+       "settings": {"content_width": "full", "flex_gap": {"unit": "px", "size": 0, "column": "0", "row": "0"}, "padding": Z, "margin": Z},
+       "elements": [{"id": "ec3d002", "elType": "widget", "widgetType": "html", "isInner": False, "settings": {"html": fragment}, "elements": []}]}]
+open(os.path.join(HERE, 'elementor-data.json'), 'w').write(json.dumps(EL))

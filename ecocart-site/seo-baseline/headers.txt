@@ -1,0 +1,24 @@
+HTTP/1.1 200 Connection Established
+
+HTTP/2 200 
+date: Sun, 18 Oct 2026 16:23:01 GMT
+content-type: text/html; charset=UTF-8
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Gd4oXW6MkDvPoBkmATEm1%2F5tdG6LWuHim%2Fr59Kix2WPzXVeTfEs%2BauHwN3Nuj5Uh5kTsQcUQoa2XbD78nrhWO9uqOmjcuyD%2FIo%2BwVhUbsVcKOlmercQUrxFkq1y4ZCdF"}]}
+x-powered-by: PHP/8.2.34
+x-dns-prefetch-control: on
+vary: accept, content-type,Accept-Encoding
+link: <https://ecocart.co.in/wp-json/>; rel="https://api.w.org/"
+link: <https://ecocart.co.in/wp-json/wp/v2/pages/4324>; rel="alternate"; title="JSON"; type="application/json"
+link: <https://ecocart.co.in/>; rel=shortlink
+speculation-rules: "/cdn-cgi/speculation"
+x-litespeed-cache: hit
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+platform: hostinger
+panel: hpanel
+content-security-policy: upgrade-insecure-requests
+x-turbo-charged-by: LiteSpeed
+cf-cache-status: DYNAMIC
+cf-ray: a4c8e29a0896a6be-IAD
+alt-svc: h3=":443"; ma=86400
+
