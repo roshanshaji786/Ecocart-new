@@ -3,6 +3,7 @@
 //
 //   POST /functions/v1/sync-catalog            products + categories (at most once per 10 min)
 //   POST /functions/v1/sync-catalog?images=40  also mirror up to 40 missing product images to Storage
+//   POST /functions/v1/sync-catalog?assets=1   also copy the fixed list of homepage assets below to site/
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 
 const STORE = "https://ecocart.co.in/wp-json/wc/store/v1";
@@ -132,6 +133,38 @@ async function mirrorImages(limit: number) {
   return done;
 }
 
+// Logo, category tiles, spotlight and review images used by the v5 homepage. A fixed list, so
+// callers cannot make the function fetch arbitrary URLs.
+const UP = "https://ecocart.co.in/wp-content/uploads/";
+const SITE_ASSETS = [
+  "2024/05/ecocart-removebg.png",
+  "2024/05/cropped-ecocart-removebg.png",
+  "2024/05/isabela-kronemberger-QXaTcvJEc-8-unsplash-1.jpg",
+  "2024/05/creatella_2-16-05-2024-0001-transformed-1-500x667.png",
+  "2024/05/IMG-20240504-WA0222.jpg",
+  "2024/08/7.jpg",
+  "2023/04/dresses-1-2.jpg",
+  "2024/07/IMG_20240726_010543-transformed-500x667.jpeg",
+  ...[1, 2, 3, 4, 7].map((n) => `2024/08/Neutral-Minimalist-Testimonials-Instagram-${n}-768x768.jpg`),
+];
+
+async function mirrorAssets() {
+  let done = 0;
+  for (const a of SITE_ASSETS) {
+    try {
+      const r = await fetch(UP + a, { headers: { "User-Agent": UA["User-Agent"] } });
+      if (!r.ok) throw new Error(`${a} → ${r.status}`);
+      const { error } = await db.storage.from(BUCKET).upload(`site/${a.split("/").pop()}`, await r.arrayBuffer(), {
+        contentType: r.headers.get("content-type") ?? "image/jpeg", upsert: true, cacheControl: "2592000" });
+      if (error) throw error;
+      done++;
+    } catch (e) {
+      console.error("asset", String(e));
+    }
+  }
+  return done;
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const imageLimit = Math.min(parseInt(url.searchParams.get("images") ?? "0", 10) || 0, 80);
@@ -145,6 +178,7 @@ Deno.serve(async (req) => {
     if (!recent) products = await syncCatalog();
     else message = "catalogue synced under 10 min ago; skipped. ";
     if (imageLimit) images = await mirrorImages(imageLimit);
+    if (!recent && url.searchParams.get("assets") === "1") images += await mirrorAssets();
   } catch (e) {
     ok = false;
     message += String(e instanceof Error ? e.message : JSON.stringify(e));

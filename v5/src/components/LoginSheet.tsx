@@ -29,7 +29,7 @@ export default function LoginSheet() {
     <Sheet open={open} onClose={() => openLogin(false)} label="Sign in">
       {state === 'sent' ? (
         <div className="stack" style={{ textAlign: 'center', justifyItems: 'center', padding: '8px 0 12px' }}>
-          <MailCheck size={40} color="var(--brand-2)" />
+          <MailCheck size={40} color="var(--brand)" />
           <h2>Check your email</h2>
           <p className="muted">
             We sent a sign-in link to <b>{email}</b>. Open it on this phone and you'll be signed in.

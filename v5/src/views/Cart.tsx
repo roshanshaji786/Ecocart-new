@@ -1,16 +1,17 @@
 import { useState } from 'react'
-import { CheckCircle2, ExternalLink, MessageCircle, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
+import { CheckCircle2, ExternalLink, MessageCircle, Minus, Plus, ShieldCheck, ShoppingBag, Trash2 } from 'lucide-react'
 import { Empty, Photo } from '../components/ui'
-import { SHIPPING, STORE, WHATSAPP, rupees } from '../lib/format'
+import { CHECKOUT_TAB, SHIPPING, STORE, WHATSAPP, checkoutUrl, rupees } from '../lib/format'
 import { useStore } from '../lib/store'
 import type { CartLine, Product } from '../lib/types'
 
 const unitOf = (p: Product, l: CartLine) =>
   (l.variationId ? p.variations.find((v) => v.id === l.variationId)?.price : p.price_max ? null : p.price) || null
 
-// The live store adds one item per link (WooCommerce's ?add-to-cart=), so each line gets its own button.
-const addUrl = (l: CartLine, last: boolean) =>
-  `${STORE}/${last ? 'checkout/' : 'cart/'}?add-to-cart=${l.variationId ?? l.productId}&quantity=${l.qty}`
+// Payment happens in Shiprocket Checkout, which lives on the ecocart.co.in cart page. WooCommerce adds
+// one item per link (?add-to-cart=), so every line gets its own button. They all open the same named
+// tab, so the items collect in one basket there.
+const addUrl = (l: CartLine) => checkoutUrl(l.variationId ?? l.productId, l.qty)
 
 export default function Cart() {
   const cart = useStore((s) => s.cart)
@@ -80,44 +81,38 @@ export default function Cart() {
         <div className="row"><span>Items</span><span>{rupees(subtotal)}</span></div>
         <div className="row"><span>Shipping (flat, India-wide)</span><span>{rupees(SHIPPING)}</span></div>
         <div className="row grand"><span>Total</span><span>{rupees(total)}{unknown ? '+' : ''}</span></div>
-        <p className="tiny muted">Pay with UPI or card through Razorpay. No cash on delivery.</p>
+        <p className="tiny muted">Secure payments via Razorpay and Shiprocket Checkout: UPI, cards and net banking. No cash on delivery.</p>
       </section>
 
       <section className="card pad stack">
         <h2>Checkout</h2>
+        <p className="sr-note"><ShieldCheck size={18} /> You'll pay in Shiprocket Checkout on ecocart.co.in, our secure checkout. Your basket opens there with these items.</p>
         {lines.length === 1 ? (
-          <>
-            <p className="small muted">You'll finish on our secure checkout at ecocart.co.in.</p>
-            <a className="btn primary block" href={addUrl(lines[0].l, true)}>
-              Checkout securely <ExternalLink size={18} />
-            </a>
-          </>
+          <a className="btn sr block" href={addUrl(lines[0].l)} target={CHECKOUT_TAB}>
+            Checkout with Shiprocket <ExternalLink size={18} />
+          </a>
         ) : (
-          <>
-            <p className="small muted">Our secure checkout runs on ecocart.co.in. Add each item there, then pay:</p>
-            <ol className="clean steps">
-              {lines.map(({ l, p }) => (
-                <li key={l.key}>
-                  <a
-                    className={`btn ${sent[l.key] ? 'ghost' : 'primary'} block`}
-                    style={{ justifyContent: 'space-between', whiteSpace: 'normal', textAlign: 'left', padding: '8px 14px' }}
-                    href={addUrl(l, false)}
-                    target="_blank"
-                    rel="noopener"
-                    onClick={() => setSent({ ...sent, [l.key]: true })}
-                  >
-                    <span>Add {p.name.length > 32 ? p.name.slice(0, 30) + '…' : p.name} × {l.qty}</span>
-                    {sent[l.key] ? <CheckCircle2 size={18} /> : <ExternalLink size={16} />}
-                  </a>
-                </li>
-              ))}
-              <li>
-                <a className={`btn ${allSent ? 'primary' : 'ghost'} block`} href={`${STORE}/checkout/`}>
-                  Go to checkout and pay
+          <ol className="clean steps">
+            {lines.map(({ l, p }) => (
+              <li key={l.key}>
+                <a
+                  className={`btn ${sent[l.key] ? 'ghost' : 'primary'} block`}
+                  style={{ justifyContent: 'space-between', whiteSpace: 'normal', textAlign: 'left', padding: '8px 16px' }}
+                  href={addUrl(l)}
+                  target={CHECKOUT_TAB}
+                  onClick={() => setSent({ ...sent, [l.key]: true })}
+                >
+                  <span>Add {p.name.length > 32 ? p.name.slice(0, 30) + '…' : p.name} × {l.qty}</span>
+                  {sent[l.key] ? <CheckCircle2 size={18} /> : <ExternalLink size={16} />}
                 </a>
               </li>
-            </ol>
-          </>
+            ))}
+            <li>
+              <a className={`btn ${allSent ? 'sr' : 'ghost'} block`} href={`${STORE}/cart/`} target={CHECKOUT_TAB}>
+                Checkout with Shiprocket
+              </a>
+            </li>
+          </ol>
         )}
         <div className="row" style={{ gap: 8 }}>
           <hr style={{ flex: 1, border: 0, borderTop: '1px solid var(--line)' }} />

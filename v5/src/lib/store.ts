@@ -99,7 +99,7 @@ export const useStore = create<State>((set, get) => ({
     else cart.push({ key, productId, variationId, options, qty })
     save('cart', cart)
     set({ cart })
-    get().toast('Added to cart')
+    get().toast('Added to basket')
   },
 
   setQty: (key, qty) => {

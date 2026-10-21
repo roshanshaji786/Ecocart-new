@@ -25,3 +25,8 @@ export const WHATSAPP = '917012045854'
 export const PHONE = '+91 70120 45854'
 export const EMAIL = 'contact@ecocart.co.in'
 export const STORE = 'https://ecocart.co.in'
+
+// Shiprocket Checkout runs on the ecocart.co.in cart page (Shiprocket Headless Checkout plugin), so
+// checkout adds the item there and opens that page. Links share one named tab.
+export const CHECKOUT_TAB = 'ecocart-checkout'
+export const checkoutUrl = (id: number, qty: number) => `${STORE}/cart/?add-to-cart=${id}&quantity=${qty}`

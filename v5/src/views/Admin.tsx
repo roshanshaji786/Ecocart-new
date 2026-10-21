@@ -102,7 +102,7 @@ export default function Admin() {
               <button key={p.id} className="line" onClick={() => setEditing(p)} style={{ width: '100%', background: 'none', border: 0, borderBottom: '1px solid var(--line)', textAlign: 'left', padding: 12, gridTemplateColumns: '48px 1fr 24px', alignItems: 'center' }}>
                 <span style={{ position: 'relative', width: 48, height: 56, overflow: 'hidden', borderRadius: 8 }}><Photo img={p.images[0]} /></span>
                 <span className="small">{p.name}<br /><span className="tiny muted">{e?.verified ? 'Checked' : e ? 'Draft' : 'No card yet'}</span></span>
-                {e?.verified ? <CheckCircle2 size={20} color="var(--brand-2)" /> : <Circle size={20} color="var(--muted)" />}
+                {e?.verified ? <CheckCircle2 size={20} color="var(--brand)" /> : <Circle size={20} color="var(--muted)" />}
               </button>
             )
           })}

@@ -11,12 +11,13 @@ export default defineConfig({
       manifest: {
         name: 'EcoCart',
         short_name: 'EcoCart',
-        description: 'Kerala-made, natural and low-waste goods, with the facts behind every product.',
-        theme_color: '#14532d',
-        background_color: '#faf8f2',
+        description: 'Eco-friendly products & personalised gifts, right from source. Made in Kerala.',
+        theme_color: '#06120c',
+        background_color: '#06120c',
         display: 'standalone',
         start_url: '/',
         icons: [
+          { src: 'https://fckeyyrdzlrreidttimo.supabase.co/storage/v1/object/public/catalog/site/cropped-ecocart-removebg.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
           { src: '/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },

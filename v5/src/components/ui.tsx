@@ -3,6 +3,7 @@ import { ImageOff, Leaf } from 'lucide-react'
 import { offPercent, priceLabel, rupees, thumbOf } from '../lib/format'
 import { useStore } from '../lib/store'
 import type { Img, Product } from '../lib/types'
+import type { SiteImage } from '../lib/site'
 
 export function Photo({ img, full, eager, className }: { img?: Img; full?: boolean; eager?: boolean; className?: string }) {
   const [failed, setFailed] = useState(false)
@@ -32,8 +33,8 @@ export function Price({ p }: { p: Product }) {
   const off = offPercent(p)
   return (
     <div className="price">
-      {priceLabel(p)}
       {off > 0 && <s>{rupees(p.regular_price)}</s>}
+      {priceLabel(p)}
     </div>
   )
 }
@@ -41,20 +42,44 @@ export function Price({ p }: { p: Product }) {
 export function ProductCard({ p, eager }: { p: Product; eager?: boolean }) {
   const eco = useStore((s) => s.eco[p.id])
   const off = offPercent(p)
+  const simple = p.variations.length === 0 && Boolean(p.price) && p.in_stock
   return (
-    <a className="pcard" href={`#/p/${p.slug}`}>
-      <div className="ph">
-        <Photo img={p.images[0]} eager={eager} />
-        {!p.in_stock ? <span className="tag out">Sold out</span> : off >= 5 ? <span className="tag">{off}% off</span> : null}
-        {eco && (
-          <span className="tag eco" title="Verified eco card">
-            <Leaf size={12} /> Eco
-          </span>
-        )}
-      </div>
-      <div className="name">{p.name}</div>
+    <article className="pcard">
+      <a href={`#/p/${p.slug}`}>
+        <div className="ph">
+          <Photo img={p.images[0]} eager={eager} />
+          {!p.in_stock ? <span className="tag out">Sold out</span> : off >= 5 ? <span className="tag">-{off}%</span> : null}
+          {eco && (
+            <span className="tag eco" title="Verified eco card">
+              <Leaf size={12} /> Eco
+            </span>
+          )}
+        </div>
+        <h3 className="name">{p.name}</h3>
+      </a>
       <Price p={p} />
-    </a>
+      {simple ? (
+        <button className="btn sm" onClick={() => useStore.getState().addToCart(p.id, 1)}>Add to basket</button>
+      ) : (
+        <a className="btn sm ghost" href={`#/p/${p.slug}`}>{p.in_stock ? 'Choose options' : 'Read more'}</a>
+      )}
+    </article>
+  )
+}
+
+// A homepage image served from Storage, falling back to ecocart.co.in (without a referrer).
+export function SiteImg({ img, alt, className, eager }: { img: SiteImage; alt: string; className?: string; eager?: boolean }) {
+  const [src, setSrc] = useState(img.src)
+  return (
+    <img
+      className={className}
+      src={src}
+      alt={alt}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => src !== img.fallback && setSrc(img.fallback)}
+    />
   )
 }
 

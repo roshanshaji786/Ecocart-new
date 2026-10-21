@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Heart, LogOut, Mail, MessageCircle, Moon, Phone, Shield, Sun, SunMoon, User } from 'lucide-react'
+import { Heart, LogOut, Mail, MessageCircle, Phone, Shield, User } from 'lucide-react'
 import { ProductCard } from '../components/ui'
 import { EMAIL, PHONE, WHATSAPP } from '../lib/format'
-import { load, save } from '../lib/storage'
 import { configured, supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 
@@ -45,7 +44,6 @@ export default function Account() {
 
       {session && <ProfileForm userId={session.user.id} />}
 
-      <ThemePicker />
 
       <section className="card pad stack">
         <h2>Help</h2>
@@ -95,32 +93,5 @@ function ProfileForm({ userId }: { userId: string }) {
       <label className="field">State<input className="input" autoComplete="address-level1" value={a.state} onChange={(e) => setA('state', e.target.value)} /></label>
       <button className="btn primary block" disabled={state !== 'idle'}>{state === 'saving' ? 'Saving…' : 'Save details'}</button>
     </form>
-  )
-}
-
-function ThemePicker() {
-  const [t, setT] = useState(load<string>('theme', 'system'))
-  const pick = (v: string) => {
-    setT(v)
-    save('theme', v)
-    if (v === 'system') delete document.documentElement.dataset.theme
-    else document.documentElement.dataset.theme = v
-  }
-  const opts = [
-    { v: 'system', label: 'Auto', Icon: SunMoon },
-    { v: 'light', label: 'Light', Icon: Sun },
-    { v: 'dark', label: 'Dark', Icon: Moon },
-  ]
-  return (
-    <section className="card pad stack">
-      <h2>Appearance</h2>
-      <div className="row" role="radiogroup" aria-label="Theme">
-        {opts.map(({ v, label, Icon }) => (
-          <button key={v} role="radio" aria-checked={t === v} aria-pressed={t === v} className="pill" style={{ flex: 1, justifyContent: 'center' }} onClick={() => pick(v)}>
-            <Icon size={16} /> {label}
-          </button>
-        ))}
-      </div>
-    </section>
   )
 }

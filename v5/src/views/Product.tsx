@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ExternalLink, Heart, Leaf, MessageCircle, Minus, PackageSearch, Plus, Share2, Truck } from 'lucide-react'
 import { Empty, Photo, Price, ProductCard } from '../components/ui'
-import { STORE, WHATSAPP, rupees } from '../lib/format'
+import { CHECKOUT_TAB, STORE, WHATSAPP, checkoutUrl, rupees } from '../lib/format'
 import { productBySlug, useStore } from '../lib/store'
 import type { Eco, Product as P } from '../lib/types'
 
@@ -36,7 +36,7 @@ function ProductView({ p }: { p: P }) {
   useEffect(() => {
     void loadDescription(p.id)
     document.title = `${p.name} · EcoCart`
-    return () => { document.title = 'EcoCart · Kerala-made, natural, low-waste' }
+    return () => { document.title = 'EcoCart · Eco-friendly products & personalised gifts' }
   }, [p.id, p.name, loadDescription])
 
   useEffect(() => {
@@ -148,9 +148,14 @@ function ProductView({ p }: { p: P }) {
                   <button aria-label="One more" onClick={() => setQty(Math.min(20, qty + 1))}><Plus size={18} /></button>
                 </div>
                 <button className="btn primary" style={{ flex: 1 }} onClick={add}>
-                  Add to cart{unitPrice ? ` · ${rupees(unitPrice * qty)}` : ''}
+                  Add to basket{unitPrice ? ` · ${rupees(unitPrice * qty)}` : ''}
                 </button>
               </div>
+            )}
+            {p.in_stock && !priceless && ready && (
+              <a className="btn sr block" href={checkoutUrl(chosen?.id ?? p.id, qty)} target={CHECKOUT_TAB}>
+                Buy now with Shiprocket <ExternalLink size={17} />
+              </a>
             )}
             <p className="small muted row" style={{ alignItems: 'flex-start' }}>
               <Truck size={18} style={{ flex: 'none' }} /> Flat ₹55 shipping per order. Delivered in 4 to 10 days anywhere in India.
@@ -191,7 +196,7 @@ function ProductView({ p }: { p: P }) {
             <div className="tiny muted" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '40vw' }}>{p.name}</div>
             <div className="price">{unitPrice ? rupees(unitPrice) : rupees(p.price)}</div>
           </div>
-          <button className="btn primary" onClick={add}>{ready ? 'Add to cart' : 'Choose options'}</button>
+          <button className="btn primary" onClick={add}>{ready ? 'Add to basket' : 'Choose options'}</button>
         </div>
       )}
     </div>
@@ -209,7 +214,7 @@ export function EcoCard({ eco }: { eco?: Eco }) {
   if (!eco)
     return (
       <div className="eco-pending">
-        <h3 className="row" style={{ gap: 8 }}><Leaf size={18} color="var(--brand-2)" /> Eco card coming soon</h3>
+        <h3 className="row" style={{ gap: 8 }}><Leaf size={18} color="var(--brand)" /> Eco card coming soon</h3>
         <p className="small muted">
           We're checking this product's materials, origin and packaging with the maker. We only show claims once they're checked. <a href="#/impact">How it works</a>
         </p>
