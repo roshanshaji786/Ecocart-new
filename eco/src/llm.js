@@ -30,9 +30,12 @@ export async function runAgent(system, history, tools) {
   }));
   const messages = [{ role: 'system', content: system }, ...history];
   const used = [];
+  const said = []; // text the model wrote alongside tool calls ("let me check…", a first recommendation)
+  const finish = (t) => ({ text: [...said, (t || '').trim()].filter(Boolean).join('\n\n'), used });
   for (let round = 0; round < 6; round++) {
     const msg = await complete(messages, defs);
-    if (!msg.tool_calls?.length) return { text: (msg.content || '').trim(), used };
+    if (!msg.tool_calls?.length) return finish(msg.content);
+    if (msg.content?.trim() && said.length < 1) said.push(msg.content.trim());
     messages.push({ role: 'assistant', content: msg.content || '', tool_calls: msg.tool_calls });
     for (const call of msg.tool_calls) {
       used.push(call.function.name);
@@ -47,5 +50,5 @@ export async function runAgent(system, history, tools) {
       messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result ?? null).slice(0, 6000) });
     }
   }
-  return { text: 'One sec, let me check and get back to you.', used };
+  return finish('One sec, let me check and get back to you.');
 }

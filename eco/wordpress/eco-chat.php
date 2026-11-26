@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) exit;
 
 const ECO_CHAT_SERVER = '__ECO_URL__';      // Eco server, e.g. http://93.127.206.59:8795
 const ECO_CHAT_SECRET = '__ECO_SECRET__';   // shared secret so only this site can use Eco's chat endpoint
-const ECO_CHAT_VERSION = '1';
+const ECO_CHAT_VERSION = '2';
 
 add_action('rest_api_init', function () {
   register_rest_route('eco/v1', '/chat', [
@@ -17,7 +17,7 @@ add_action('rest_api_init', function () {
     'callback' => function (WP_REST_Request $req) {
       $ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? ($_SERVER['REMOTE_ADDR'] ?? '');
       $res = wp_remote_post(ECO_CHAT_SERVER . '/chat', [
-        'timeout' => 45,
+        'timeout' => 40,
         'headers' => ['Content-Type' => 'application/json', 'X-Eco-Proxy' => ECO_CHAT_SECRET, 'X-Forwarded-For' => $ip],
         'body' => wp_json_encode([
           'message' => mb_substr((string) $req->get_param('message'), 0, 800),
@@ -61,9 +61,3 @@ add_action('wp_footer', function () {
   );
 }, 99);
 
-// Once per version: purge the page cache so cached pages pick up the bubble.
-add_action('init', function () {
-  if (get_option('eco_chat_purged') === ECO_CHAT_VERSION) return;
-  update_option('eco_chat_purged', ECO_CHAT_VERSION, false);
-  do_action('litespeed_purge_all');
-}, 99);
