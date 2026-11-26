@@ -17,7 +17,13 @@ const rand = (a, b) => a + Math.random() * (b - a);
 
 const AUTH = path.resolve(process.env.AUTH_DIR || 'auth');
 let sock = null;
-export const link = { qr: '', code: '', connected: false, number: '', since: 0 };
+export const link = { qr: '', code: '', connected: false, number: '', since: 0, lastVisit: Date.now() };
+let idle = false;
+// Called by the /link page: wakes the linking session if it went idle.
+export function wakeLinking() {
+  link.lastVisit = Date.now();
+  if (idle) { idle = false; startWhatsApp().catch((e) => console.error('start', e.message)); }
+}
 let myLid = '';
 const sentByBot = new Set();
 const pending = new Map(); // chatId -> { timer, texts, phone, name, replyTo }
@@ -188,10 +194,17 @@ export async function startWhatsApp() {
       link.connected = false;
       const code = lastDisconnect?.error?.output?.statusCode;
       link.code = ''; link.qr = '';
+      const wasLinked = !!sock.authState.creds.registered || !!link.since;
       if (code === DisconnectReason.loggedOut) {
         // Unlinked from the phone, or a pairing attempt expired: start a fresh session with a new code.
         console.error('WhatsApp logged out; starting a fresh link session.');
         fs.rmSync(AUTH, { recursive: true, force: true });
+      }
+      // Not linked and nobody has the link page open: stop asking WhatsApp for codes until they do.
+      if ((code === DisconnectReason.loggedOut || !wasLinked) && Date.now() - link.lastVisit > 10 * 60 * 1000) {
+        idle = true;
+        console.log('Waiting for the /link page to be opened before requesting a new code.');
+        return;
       }
       setTimeout(() => startWhatsApp().catch((e) => console.error('reconnect', e.message)), code === DisconnectReason.loggedOut ? 3000 : 5000);
     }

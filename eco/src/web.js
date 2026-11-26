@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import QRCode from 'qrcode';
 import { config } from './config.js';
 import { customerTurn } from './agent.js';
-import { notifyOwner, link } from './whatsapp.js';
+import { notifyOwner, link, wakeLinking } from './whatsapp.js';
 import { store } from './store.js';
 
 const hits = new Map();
@@ -21,6 +21,7 @@ export function startWeb() {
   // Link page: open http://VPS:PORT/link?token=LINK_TOKEN on a laptop, scan with the phone.
   app.get('/link', async (req, res) => {
     if (!config.linkToken || req.query.token !== config.linkToken) return res.status(404).send('Not found');
+    if (!link.connected) wakeLinking();
     const qrImg = link.qr ? await QRCode.toDataURL(link.qr, { margin: 1, width: 300 }) : '';
     res.set('Cache-Control', 'no-store').send(`<!doctype html><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=refresh content=15>
 <title>Link Eco</title><body style="font:16px system-ui;max-width:420px;margin:24px auto;padding:0 16px;color:#1b1b1b;background:#fff">
