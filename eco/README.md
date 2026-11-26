@@ -60,3 +60,16 @@ Live through the must-use plugin `wordpress/eco-chat.php`, installed on the VPS 
 cp .env.example .env   # fill in, never commit
 npm ci && npm start
 ```
+
+## Supplier outreach (Roshan's house, uPVC windows)
+
+Separate from selling. `src/suppliers.js` messages uPVC window suppliers once each and collects quotes on the RFQ.
+
+- Starters: one per supplier, written fresh by DeepSeek every time (no template, no link, no file), sent one at a time
+  with a random gap of `SUPPLIER_GAP_MIN`-`SUPPLIER_GAP_MAX` minutes (default 200-260), 10:00-18:00 Mon-Sat IST.
+- Replies: Eco answers from the RFQ text, sends the RFQ PDF once they are interested, forwards any quotation file or
+  price to Roshan, and hands site visits, calls and negotiation to Roshan (chat paused). Suppliers never get EcoCart broadcasts.
+- Private inputs live in the project env only: `SUPPLIERS_SEED="Name|9876543210;Name 2|9123456789"`, `RFQ_URL` / `RFQ_TEXT_URL`
+  (downloaded once into the data volume), `SUPPLIER_START=<id>` starts the campaign once for that id.
+  Roshan can also send the PDF to Eco with the caption `hey eco rfq`.
+- Commands: `hey eco suppliers status` · `hey eco pause suppliers` / `start suppliers` · `hey eco add supplier Name 98xxxxxxxx`.

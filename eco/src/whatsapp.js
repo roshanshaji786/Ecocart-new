@@ -1,7 +1,7 @@
 // WhatsApp through Baileys (WhatsApp Web protocol, unofficial; the number is a linked device).
 // Human-like: waits, marks read, shows typing, sends short bubbles. Ban-safety: never messages
 // strangers first, ignores groups/status/channels, rate-limits, and stays silent in personal chats.
-import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers } from '@whiskeysockets/baileys';
+import makeWASocket, { downloadMediaMessage, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -9,6 +9,7 @@ import { config } from './config.js';
 import { store, digitsOf } from './store.js';
 import { customerTurn, ownerTurn, isShopper } from './agent.js';
 import { broadcast } from './proactive.js';
+import { supplierFor, supplierTurn, supplierFile, saveRfqPdf } from './suppliers.js';
 
 const log = pino({ level: process.env.BAILEYS_LOG || 'warn' });
 const WAKE = /^\s*(hey|hi|hello|ok|oi)?\s*,?\s*eco\b[\s,:!.-]*/i;
@@ -29,15 +30,20 @@ const sentByBot = new Set();
 const pending = new Map(); // chatId -> { timer, texts, phone, name, replyTo }
 const outbox = [];
 
-function textOf(m) {
+function innerOf(m) {
   const msg = m.message || {};
   const inner = msg.ephemeralMessage?.message || msg.viewOnceMessageV2?.message || msg.viewOnceMessage?.message || msg;
+  return inner.documentWithCaptionMessage?.message || inner;
+}
+
+function textOf(m) {
+  const inner = innerOf(m);
   if (inner.conversation) return inner.conversation;
   if (inner.extendedTextMessage?.text) return inner.extendedTextMessage.text;
   if (inner.imageMessage) return `[sent a photo] ${inner.imageMessage.caption || ''}`.trim();
   if (inner.videoMessage) return `[sent a video] ${inner.videoMessage.caption || ''}`.trim();
   if (inner.audioMessage) return '[sent a voice note. You cannot listen to it; kindly ask them to type, or say Roshan will listen if it seems important]';
-  if (inner.documentMessage) return '[sent a document]';
+  if (inner.documentMessage) return `[sent a document: ${inner.documentMessage.fileName || 'file'}] ${inner.documentMessage.caption || ''}`.trim();
   if (inner.locationMessage) return '[shared a location]';
   if (inner.contactMessage) return '[shared a contact]';
   if (inner.stickerMessage) return '[sent a sticker]';
@@ -77,6 +83,24 @@ export async function sendText(jid, text, { human = true } = {}) {
   }
 }
 
+export async function sendDocument(jid, buffer, fileName) {
+  if (!sock || !link.connected) throw new Error('WhatsApp not connected');
+  await rateLimit();
+  await sock.sendPresenceUpdate('composing', jid).catch(() => {});
+  await sleep(rand(2500, 5000));
+  const res = await sock.sendMessage(jid, { document: buffer, mimetype: 'application/pdf', fileName });
+  if (res?.key?.id) sentByBot.add(res.key.id);
+}
+
+// Forward a supplier's file (their quotation) to Roshan's own chat, with a note.
+export async function forwardToOwner(m, note) {
+  const owner = config.owners[0] || link.number;
+  const jid = owner === link.number ? selfJid() : `${owner}@s.whatsapp.net`;
+  await sendText(jid, `🤖 Eco: ${note}`, { human: false });
+  const res = await sock.sendMessage(jid, { forward: m });
+  if (res?.key?.id) sentByBot.add(res.key.id);
+}
+
 export async function exists(jid) {
   try { const [r] = await sock.onWhatsApp(jid); return !!r?.exists; } catch { return false; }
 }
@@ -113,6 +137,16 @@ async function handle(m, type) {
 
   // Roshan's commands: "hey eco ..." from his own chat or an owner number.
   const fromOwner = (m.key.fromMe && isSelfChat(chatId)) || (!m.key.fromMe && phone && config.owners.includes(phone));
+  if (fromOwner && WAKE.test(text) && innerOf(m).documentMessage && /\brfq\b/i.test(text)) {
+    try {
+      const buf = await downloadMediaMessage(m, 'buffer', {});
+      saveRfqPdf(buf, innerOf(m).documentMessage.fileName);
+      await sendText(raw, `🤖 Got the RFQ (${Math.round(buf.length / 1024)} KB). I'll send this file to suppliers who reply.`, { human: false });
+    } catch (e) {
+      await sendText(raw, `🤖 Eco error saving the RFQ: ${e.message}`, { human: false });
+    }
+    return;
+  }
   if (fromOwner && WAKE.test(text)) {
     const command = text.replace(WAKE, '').trim() || 'status';
     try {
@@ -131,6 +165,20 @@ async function handle(m, type) {
     return;
   }
   if (type !== 'notify' || fromOwner) return;
+  if (supplierFor(chatId)) {
+    if (store.paused || store.isChatPaused(chatId)) return;
+    const inner = innerOf(m);
+    if (inner.documentMessage || inner.imageMessage) {
+      supplierFile({ chatId, message: m, caption: inner.documentMessage?.caption || inner.imageMessage?.caption || '' }).catch((e) => console.error('supplier file', e.message));
+    }
+    const p = pending.get(chatId) || { texts: [], phone, name: m.pushName || '', keys: [], supplier: true };
+    p.texts.push(text);
+    p.keys.push(m.key);
+    clearTimeout(p.timer);
+    p.timer = setTimeout(() => flush(chatId), rand(8000, 15000));
+    pending.set(chatId, p);
+    return;
+  }
   if (store.paused || store.isChatPaused(chatId) || store.chatKind(chatId) === 'other') return;
   if (config.ignoreSavedContacts && phone && store.isSaved(phone) && store.chatKind(chatId) !== 'customer') return;
 
@@ -148,6 +196,17 @@ async function flush(chatId) {
   pending.delete(chatId);
   if (!p) return;
   const text = p.texts.join('\n');
+  if (p.supplier) {
+    try {
+      await sleep(rand(20000, 90000)); // a real person doesn't answer a supplier instantly
+      sock.readMessages(p.keys).catch(() => {});
+      const reply = await supplierTurn({ chatId, text, notifyOwner });
+      if (reply) await sendText(chatId, reply);
+    } catch (e) {
+      console.error('supplier reply failed', e.message);
+    }
+    return;
+  }
   try {
     if (!store.chatKind(chatId)) {
       const shopper = await isShopper(`${p.name ? `Name: ${p.name}\n` : ''}${text}`);

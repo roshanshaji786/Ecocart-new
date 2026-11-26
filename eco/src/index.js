@@ -1,5 +1,6 @@
 import { config, assertConfig, hasOrders } from './config.js';
-import { startWhatsApp, notifyOwner, sendText, exists, link } from './whatsapp.js';
+import { startWhatsApp, notifyOwner, sendText, sendDocument, forwardToOwner, exists, link } from './whatsapp.js';
+import { startSuppliers } from './suppliers.js';
 import { startWeb } from './web.js';
 import { startProactive } from './proactive.js';
 import { loadCatalogue, salesSummary } from './woo.js';
@@ -14,6 +15,7 @@ setInterval(() => loadCatalogue(true).catch(() => {}), 30 * 60 * 1000);
 startWeb();
 await startWhatsApp();
 startProactive({ sendText, exists });
+await startSuppliers({ sendText, sendDocument, exists, notifyOwner, forwardToOwner });
 
 // Daily report to Roshan at REPORT_HOUR, India time.
 let lastReport = '';

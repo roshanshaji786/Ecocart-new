@@ -35,6 +35,13 @@ services:
       WOO_KEY_FILE: "/data/woo.json"
       AUTH_DIR: "/data/auth"
       TZ: "Asia/Kolkata"
+      # Supplier outreach for Roshan's house windows (values in the project env, never git).
+      SUPPLIERS_SEED: "${SUPPLIERS_SEED:-}"
+      SUPPLIER_START: "${SUPPLIER_START:-}"
+      SUPPLIER_GAP_MIN: "${SUPPLIER_GAP_MIN:-200}"
+      SUPPLIER_GAP_MAX: "${SUPPLIER_GAP_MAX:-260}"
+      RFQ_URL: "${RFQ_URL:-}"
+      RFQ_TEXT_URL: "${RFQ_TEXT_URL:-}"
     volumes:
       - ecodata:/data
     ports:

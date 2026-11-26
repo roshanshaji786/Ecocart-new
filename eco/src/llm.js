@@ -2,7 +2,7 @@
 import { config } from './config.js';
 
 let badModel = '';
-async function complete(messages, tools, { maxTokens = 700, temperature = 0.7 } = {}) {
+export async function complete(messages, tools, { maxTokens = 700, temperature = 0.7 } = {}) {
   let lastErr;
   for (const model of [config.deepseek.model, config.deepseek.fallback].filter((m) => m && m !== badModel)) {
     const res = await fetch(`${config.deepseek.baseUrl}/chat/completions`, {

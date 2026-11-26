@@ -4,6 +4,7 @@ import { customerPrompt, ownerPrompt, CLASSIFY_PROMPT } from './prompt.js';
 import { store, digitsOf } from './store.js';
 import { hasOrders } from './config.js';
 import * as woo from './woo.js';
+import { supplierOwnerTools } from './suppliers.js';
 
 const obj = (props, required = []) => ({ type: 'object', properties: props, required });
 const str = (description) => ({ type: 'string', description });
@@ -85,6 +86,7 @@ export async function customerTurn({ chatId, phone = '', name = '', channel, tex
 export async function ownerTurn({ text, sendTo, broadcast }) {
   const tools = {
     ...productTools(),
+    ...supplierOwnerTools,
     eco_status: {
       description: "Eco's state: paused?, today's stats, queue size, paused chats, instructions, orders connected?",
       parameters: obj({}),

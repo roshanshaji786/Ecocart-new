@@ -112,7 +112,7 @@ export const broadcast = {
       people = await woo.pastCustomers(300);
     } else {
       people = store.knownChats()
-        .filter((k) => k.endsWith('@s.whatsapp.net') && store.chatKind(k) !== 'other')
+        .filter((k) => k.endsWith('@s.whatsapp.net') && !['other', 'supplier'].includes(store.chatKind(k)))
         .map((k) => ({ phone: digitsOf(k), name: store.name(digitsOf(k)) }));
     }
     people = people.filter((p) => !store.isOptedOut(p.phone) && !config.owners.includes(p.phone));

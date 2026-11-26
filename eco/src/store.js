@@ -8,7 +8,7 @@ fs.mkdirSync(DIR, { recursive: true });
 
 const empty = () => ({
   paused: false, pausedChats: {}, notes: [], history: {}, stats: {},
-  optOut: {}, done: {}, queue: [], sends: [], chatKind: {}, saved: {}, names: {}, broadcastDraft: null,
+  optOut: {}, done: {}, queue: [], sends: [], chatKind: {}, saved: {}, names: {}, broadcastDraft: null, kv: {},
 });
 let state = empty();
 try { state = { ...empty(), ...JSON.parse(fs.readFileSync(FILE, 'utf8')) }; } catch {}
@@ -79,6 +79,10 @@ export const store = {
 
   broadcastDraft() { return state.broadcastDraft; },
   setBroadcastDraft(d) { state.broadcastDraft = d; save(); },
+
+  // Generic keyed state for add-ons (e.g. the supplier outreach).
+  get(key, dflt) { return state.kv?.[key] ?? dflt; },
+  set(key, value) { (state.kv ||= {})[key] = value; save(); },
 
   bump(key, n = 1) { const d = (state.stats[todayIST()] ||= {}); d[key] = (d[key] || 0) + n; save(); },
   statsToday() { return state.stats[todayIST()] || {}; },
