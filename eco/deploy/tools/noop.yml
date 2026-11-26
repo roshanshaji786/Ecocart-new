@@ -1,0 +1,5 @@
+# Placeholder used to retire one-off jobs safely before deleting them.
+services:
+  noop:
+    image: alpine:3
+    command: ["true"]
