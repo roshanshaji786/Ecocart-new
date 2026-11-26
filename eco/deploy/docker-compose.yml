@@ -38,6 +38,8 @@ services:
       # Supplier outreach for Roshan's house windows (values in the project env, never git).
       SUPPLIERS_SEED: "${SUPPLIERS_SEED:-}"
       SUPPLIER_START: "${SUPPLIER_START:-}"
+      SUPPLIER_TEST: "${SUPPLIER_TEST:-}"
+      SUPPLIER_TEST_ONLY: "${SUPPLIER_TEST_ONLY:-}"
       SUPPLIER_GAP_MIN: "${SUPPLIER_GAP_MIN:-200}"
       SUPPLIER_GAP_MAX: "${SUPPLIER_GAP_MAX:-260}"
       RFQ_URL: "${RFQ_URL:-}"
