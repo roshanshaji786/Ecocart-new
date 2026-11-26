@@ -1,0 +1,13 @@
+# One-off, read-only: shows how nginx serves ecocart.co.in on the VPS.
+services:
+  peek:
+    image: alpine:3
+    volumes:
+      - /etc/nginx:/host/nginx:ro
+    command:
+      - sh
+      - -c
+      - |
+        echo "== nginx site ecocart.co.in =="
+        grep -nE "server_name|root |proxy_pass|fastcgi_pass|listen|include|location" /host/nginx/sites-enabled/ecocart.co.in
+        echo "== done =="
