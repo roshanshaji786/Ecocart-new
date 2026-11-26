@@ -118,7 +118,7 @@ async function tick() {
   const queued = Object.values(all()).filter((s) => s.status === 'queued' && (!testOnly || s.test));
   const next = queued.find((s) => s.test) || queued[0];
   if (!next && testOnly) return; // trial mode: real suppliers wait until Roshan approves
-  if (!next) { setCamp({ active: false }); await wa.notifyOwner('Supplier outreach: all starters sent. I will keep handling their replies.'); return; }
+  if (!next) { setCamp({ active: false }); console.log('Supplier outreach: all starters sent.'); return; }
   busy = true;
   try {
     const jid = jidOf(next.phone);
@@ -151,7 +151,7 @@ YOUR GOAL: get a written, itemised quotation for the windows in the RFQ below.
 - What we want in the quote: rate per sq ft and amount per item, profile brand and series, glass, hardware brand, GST, transport/freight, unloading, installation, warranty (profile and hardware), payment terms, delivery time, validity.
 - Answer questions using ONLY the RFQ details below. Sizes in the RFQ are final for quoting; they can quote their equivalent profile.
 - When they share prices or a quotation in text, call record_quote with a short summary and thank them.
-- Site address: ${cfg.site}; Roshan will share the exact location when needed. Site visit, measurement visit, phone call, discounts, negotiation, advance, ordering, or anything not in the RFQ: call hand_to_roshan and say Roshan will contact them.
+- Site address: ${cfg.site}; exact location will be shared later. If they ask for a site visit, measurement, a call, discounts, advance or an order: politely say we are first collecting quotations on these sizes, ask them to send the quotation on the RFQ, and say we will contact them after comparing. Handle everything yourself.
 - Never agree to an order, a price or a payment. Never mention EcoCart or any shop. Never invent facts.
 - If they say they don't do this work or are not interested, thank them politely and call mark_not_interested.
 - If someone sincerely asks whether you are a bot or a real person, do not lie: say you're an assistant helping Roshan collect quotes and he can call them.
@@ -165,7 +165,7 @@ export async function supplierTurn({ chatId, text, notifyOwner }) {
   store.push(chatId, 'user', text);
   if (!s.repliedAt) {
     update(chatId, { status: 'talking', repliedAt: Date.now() });
-    await notifyOwner(`Supplier replied: ${s.name || ''} +${s.phone}\n"${text.slice(0, 200)}"`);
+    console.log(`SUPPLIER REPLY ${s.name} +${s.phone}: ${text.slice(0, 300)}`);
   }
   let rfqSent = !!s.rfqSentAt;
   const tools = {
@@ -174,7 +174,7 @@ export async function supplierTurn({ chatId, text, notifyOwner }) {
       parameters: { type: 'object', properties: {} },
       run: async () => {
         if (rfqSent) return { already_sent: true };
-        if (!hasPdf()) { await notifyOwner(`Supplier ${s.name} +${s.phone} wants the RFQ but I don't have the PDF. Send it to me with "hey eco rfq".`); return { error: 'PDF not available yet; say you will send it shortly.' }; }
+        if (!hasPdf()) { console.error('RFQ pdf missing'); return { error: 'PDF not available yet; say you will send it shortly.' }; }
         await wa.sendDocument(chatId, fs.readFileSync(PDF), store.get('rfq_pdf_name', cfg.pdfName));
         rfqSent = true;
         update(chatId, { rfqSentAt: Date.now(), status: 'rfq_sent' });
@@ -186,17 +186,7 @@ export async function supplierTurn({ chatId, text, notifyOwner }) {
       parameters: { type: 'object', properties: { summary: { type: 'string' } }, required: ['summary'] },
       run: async ({ summary }) => {
         update(chatId, { status: 'quoted', quote: summary, quotedAt: Date.now() });
-        await notifyOwner(`Quote from ${s.name} +${s.phone}:\n${summary}`);
-        return { ok: true };
-      },
-    },
-    hand_to_roshan: {
-      description: 'Ask Roshan to take over (site visit, call, negotiation, anything outside the RFQ). Eco stops replying in this chat.',
-      parameters: { type: 'object', properties: { reason: { type: 'string' } }, required: ['reason'] },
-      run: async ({ reason }) => {
-        store.pauseChat(chatId, `supplier: ${reason}`);
-        update(chatId, { handedOff: reason });
-        await notifyOwner(`Supplier needs you: ${s.name} +${s.phone}\nWhy: ${reason}\nThey said: "${text.slice(0, 300)}"\nWhen done: "hey eco resume ${s.phone.slice(-10)}"`);
+        console.log(`SUPPLIER QUOTE ${s.name} +${s.phone}: ${summary}`);
         return { ok: true };
       },
     },
@@ -245,7 +235,13 @@ export async function sendTrialStarters(to) {
 export async function supplierFile({ chatId, message, caption }) {
   const s = supplierFor(chatId);
   update(chatId, { status: 'quoted', quotedAt: Date.now(), quoteFile: true });
-  await wa.forwardToOwner(message, `Quotation file from ${s.name} +${s.phone}${caption ? `: ${caption}` : ''}`);
+  try {
+    const buf = await wa.download(message);
+    const name = `${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}_${(s.name || s.phone).replace(/[^\w]+/g, '_')}_${message.message?.documentMessage?.fileName || 'quote.jpg'}`.replace(/[^\w.-]+/g, '_');
+    fs.mkdirSync(path.join(DIR, 'quotes'), { recursive: true });
+    fs.writeFileSync(path.join(DIR, 'quotes', name), buf);
+    console.log(`SUPPLIER QUOTE FILE ${s.name} +${s.phone}: quotes/${name} (${Math.round(buf.length / 1024)} KB) ${caption}`);
+  } catch (e) { console.error('quote file save', e.message); }
 }
 
 // ---- owner controls (used by "hey eco …") ----

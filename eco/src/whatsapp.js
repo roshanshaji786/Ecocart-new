@@ -101,6 +101,8 @@ export async function forwardToOwner(m, note) {
   if (res?.key?.id) sentByBot.add(res.key.id);
 }
 
+export const download = (m) => downloadMediaMessage(m, 'buffer', {});
+
 export async function exists(jid) {
   try { const [r] = await sock.onWhatsApp(jid); return !!r?.exists; } catch { return false; }
 }
