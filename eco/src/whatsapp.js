@@ -4,6 +4,7 @@
 import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import path from 'node:path';
+import fs from 'node:fs';
 import { config } from './config.js';
 import { store, digitsOf } from './store.js';
 import { customerTurn, ownerTurn, isShopper } from './agent.js';
@@ -14,6 +15,7 @@ const WAKE = /^\s*(hey|hi|hello|ok|oi)?\s*,?\s*eco\b[\s,:!.-]*/i;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const rand = (a, b) => a + Math.random() * (b - a);
 
+const AUTH = path.resolve(process.env.AUTH_DIR || 'auth');
 let sock = null;
 export const link = { qr: '', code: '', connected: false, number: '', since: 0 };
 let myLid = '';
@@ -156,7 +158,7 @@ async function flush(chatId) {
 }
 
 export async function startWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState(path.resolve(process.env.AUTH_DIR || 'auth'));
+  const { state, saveCreds } = await useMultiFileAuthState(AUTH);
   const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: undefined }));
   sock = makeWASocket({
     auth: state, logger: log, version, browser: Browsers.ubuntu('Chrome'),
@@ -171,8 +173,9 @@ export async function startWhatsApp() {
       if (config.waPhone && !sock.authState.creds.registered && !askedCode) {
         askedCode = true;
         try {
-          link.code = await sock.requestPairingCode(config.waPhone);
-          console.log(`Pairing code for +${config.waPhone}: ${link.code}`);
+          const code = await sock.requestPairingCode(config.waPhone);
+          link.code = code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
+          console.log(`Pairing code for +${config.waPhone}: ${link.code} (${new Date().toISOString()})`);
         } catch (e) { console.error('pairing code', e.message); }
       }
     }
@@ -184,12 +187,13 @@ export async function startWhatsApp() {
     if (connection === 'close') {
       link.connected = false;
       const code = lastDisconnect?.error?.output?.statusCode;
+      link.code = ''; link.qr = '';
       if (code === DisconnectReason.loggedOut) {
-        console.error('WhatsApp logged out. Clear the auth folder and link again.');
-        link.code = ''; link.qr = '';
-        return;
+        // Unlinked from the phone, or a pairing attempt expired: start a fresh session with a new code.
+        console.error('WhatsApp logged out; starting a fresh link session.');
+        fs.rmSync(AUTH, { recursive: true, force: true });
       }
-      setTimeout(() => startWhatsApp().catch((e) => console.error('reconnect', e.message)), 5000);
+      setTimeout(() => startWhatsApp().catch((e) => console.error('reconnect', e.message)), code === DisconnectReason.loggedOut ? 3000 : 5000);
     }
   });
 
