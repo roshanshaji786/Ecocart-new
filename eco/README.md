@@ -46,11 +46,13 @@ Send from the "Message yourself" chat on 70121 45854 (or from 70120 45854):
 
 ## Website chat bubble
 
-Needs an HTTPS address for Eco (the store is HTTPS). Once there is one, add before `</body>`:
+Live through the must-use plugin `wordpress/eco-chat.php`, installed on the VPS at
+`/srv/sites/ecocart.co.in/wp-content/mu-plugins/eco-chat.php` by `deploy/tools/install-wp-widget.yml`
+(that job fills in Eco's address and the shared `WEB_PROXY_SECRET`; neither is in git).
 
-```html
-<script src="https://ECO-HOST/widget/eco-widget.js" data-endpoint="https://ECO-HOST/chat" defer></script>
-```
+- `POST /wp-json/eco/v1/chat` forwards to Eco's `/chat` server-side, so the browser stays on the store's HTTPS origin.
+- `GET /wp-json/eco/v1/widget.js` serves the bubble script (cached for an hour).
+- The bubble is added to every page except cart, checkout and account. Cached pages pick it up within 10 minutes.
 
 ## Local run
 
