@@ -24,7 +24,7 @@ export async function classify(system, text) {
 }
 
 // tools: { name: { description, parameters, run(args) } }
-export async function runAgent(system, history, tools) {
+export async function runAgent(system, history, tools, opts = {}) {
   const defs = Object.entries(tools).map(([name, t]) => ({
     type: 'function', function: { name, description: t.description, parameters: t.parameters },
   }));
@@ -33,7 +33,7 @@ export async function runAgent(system, history, tools) {
   const said = []; // text the model wrote alongside tool calls ("let me check…", a first recommendation)
   const finish = (t) => ({ text: [...said, (t || '').trim()].filter(Boolean).join('\n\n'), used });
   for (let round = 0; round < 6; round++) {
-    const msg = await complete(messages, defs);
+    const msg = await complete(messages, defs, opts);
     if (!msg.tool_calls?.length) return finish(msg.content);
     if (msg.content?.trim() && said.length < 1) said.push(msg.content.trim());
     messages.push({ role: 'assistant', content: msg.content || '', tool_calls: msg.tool_calls });

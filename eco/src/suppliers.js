@@ -94,10 +94,12 @@ async function writeStarter(s) {
 Messages already sent to other businesses (yours must look clearly different in wording, length and opening):
 ${previous.map((p) => `- ${p}`).join('\n') || '- none yet'}`;
   for (let i = 0; i < 3; i++) {
-    const msg = await complete([{ role: 'system', content: STARTER_PROMPT }, { role: 'user', content: user }], null, { maxTokens: 120, temperature: 1.1 });
-    const t = (msg.content || '').trim().replace(/^["']|["']$/g, '');
+    const msg = await complete([{ role: 'system', content: STARTER_PROMPT }, { role: 'user', content: user }], null, { maxTokens: 2000, temperature: 1.1 });
+    const t = (msg.content || '').trim().replace(/^["']|["']$/g, '').replace(/\s*[—–]\s*/g, ', ');
     const first4 = (x) => x.toLowerCase().split(/\s+/).slice(0, 4).join(' ');
-    if (t && t.length < 260 && !/—|https?:|\.pdf|₹|rs\.?\s?\d/i.test(t) && !previous.some((p) => first4(p) === first4(t))) return t;
+    if (!t) { console.error('starter: empty reply', msg.reasoning_content ? '(reasoning only)' : ''); continue; }
+    if (t.length < 260 && !/https?:|\.pdf|₹|rs\.?\s?\d/i.test(t) && !previous.some((p) => first4(p) === first4(t))) return t;
+    console.error('starter rejected:', t.slice(0, 120));
   }
   throw new Error('could not write a distinct starter');
 }
@@ -201,7 +203,7 @@ export async function supplierTurn({ chatId, text, notifyOwner }) {
     },
   };
   const history = store.history(chatId).map(({ role, content }) => ({ role, content }));
-  const { text: reply } = await runAgent(replyPrompt(s), history, tools);
+  const { text: reply } = await runAgent(replyPrompt(s), history, tools, { maxTokens: 2000 });
   if (reply) store.push(chatId, 'assistant', reply);
   return reply;
 }
