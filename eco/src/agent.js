@@ -35,7 +35,9 @@ function productTools() {
 }
 
 export async function isShopper(text) {
-  try { return (await classify(CLASSIFY_PROMPT, text)).startsWith('SHOP'); } catch { return true; }
+  // Only a clear NOT keeps Eco out; an empty or odd answer counts as a shopper (the chat agent can still
+  // call not_a_customer), so a model hiccup never silences a real customer for good.
+  try { return !/^NOT\b/.test(await classify(CLASSIFY_PROMPT, text)); } catch { return true; }
 }
 
 export async function customerTurn({ chatId, phone = '', name = '', channel, text, notifyOwner }) {

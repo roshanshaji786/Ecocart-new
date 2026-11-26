@@ -9,6 +9,14 @@ import { store } from './store.js';
 assertConfig();
 process.on('unhandledRejection', (e) => console.error('unhandled', e?.message || e));
 
+// 26 Nov 2026: the shopper check got empty answers (max_tokens too small for a reasoning model), so every
+// new WhatsApp chat was marked "not a shopper". Clear those once so each gets a fresh, working check.
+if (!store.isDone('fix:shopper-check-v1')) {
+  const n = store.clearChatKind('other');
+  store.markDone('fix:shopper-check-v1');
+  console.log(`Shopper check fix: ${n} chats that were wrongly ignored will be checked again`);
+}
+
 await loadCatalogue(true).then((c) => console.log(`Loaded ${c.length} products`)).catch((e) => console.error('Catalogue', e.message));
 setInterval(() => loadCatalogue(true).catch(() => {}), 30 * 60 * 1000);
 

@@ -2,7 +2,9 @@
 import { config } from './config.js';
 
 let badModel = '';
-export async function complete(messages, tools, { maxTokens = 700, temperature = 0.7 } = {}) {
+// deepseek-flash reasons before it answers, and the reasoning counts toward max_tokens: a small cap
+// returns an empty answer. Keep caps generous (they are a ceiling, not what is billed).
+export async function complete(messages, tools, { maxTokens = 2500, temperature = 0.7 } = {}) {
   let lastErr;
   for (const model of [config.deepseek.model, config.deepseek.fallback].filter((m) => m && m !== badModel)) {
     const res = await fetch(`${config.deepseek.baseUrl}/chat/completions`, {
@@ -19,7 +21,7 @@ export async function complete(messages, tools, { maxTokens = 700, temperature =
 }
 
 export async function classify(system, text) {
-  const msg = await complete([{ role: 'system', content: system }, { role: 'user', content: text.slice(0, 1500) }], null, { maxTokens: 5, temperature: 0 });
+  const msg = await complete([{ role: 'system', content: system }, { role: 'user', content: text.slice(0, 1500) }], null, { maxTokens: 600, temperature: 0 });
   return (msg.content || '').trim().toUpperCase();
 }
 

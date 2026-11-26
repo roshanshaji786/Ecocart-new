@@ -52,6 +52,7 @@ export const store = {
   // "customer" | "other" (friends, Darts leads, etc. Eco stays silent)
   chatKind(id) { return state.chatKind[id]; },
   setChatKind(id, kind) { state.chatKind[id] = kind; save(); },
+  clearChatKind(kind) { let n = 0; for (const [id, k] of Object.entries(state.chatKind)) if (k === kind) { delete state.chatKind[id]; n++; } save(); return n; },
 
   isSaved(phone) { return !!state.saved[phone]; },
   setSaved(phone, name) { if (phone) { state.saved[phone] = name || true; save(); } },
