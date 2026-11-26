@@ -18,10 +18,10 @@ const TXT = path.join(DIR, 'rfq.txt');
 const num = (v, d) => (v === undefined || v === '' ? d : Number(v));
 
 const cfg = {
-  gapMin: num(process.env.SUPPLIER_GAP_MIN, 200), // minutes between starters (random in [min, max])
-  gapMax: num(process.env.SUPPLIER_GAP_MAX, 260),
+  gapMin: num(process.env.SUPPLIER_GAP_MIN, 13), // minutes between starters (random in [min, max])
+  gapMax: num(process.env.SUPPLIER_GAP_MAX, 18),
   hoursStart: num(process.env.SUPPLIER_HOURS_START, 10),
-  hoursEnd: num(process.env.SUPPLIER_HOURS_END, 18),
+  hoursEnd: num(process.env.SUPPLIER_HOURS_END, 20),
   pdfName: process.env.RFQ_FILE_NAME || 'RFQ_uPVC_Windows_Roshan_Shaji.pdf',
   site: process.env.RFQ_SITE || 'Thiruvallam, Thiruvananthapuram',
 };
@@ -83,8 +83,9 @@ async function download(url, file) {
 // ---- starters ----
 const STARTER_PROMPT = `You write ONE short first WhatsApp message from a house owner in Thiruvananthapuram, Kerala, to a uPVC windows business he has never contacted.
 Facts: new house at ${cfg.site}; needs uPVC windows and sliding doors, about 17 units (around 385 sq ft), white, 5 mm toughened glass; he has the full list with sizes ready.
-Goal of this message: just open the chat. Ask, in your own way, whether they can give a quotation (or whether they do work in this area). Do NOT include the size list, any link, price, or a file.
-Style: like a real person typing on a phone. 1 or 2 short sentences, 8 to 30 words. Vary everything: greeting or no greeting, English or light Manglish (Malayalam words in English letters), word order, which detail you mention, punctuation, capitalisation. No emojis or at most one, no em dashes. Any time greeting must match the time given. Never sound like a template, ad or bot. Do not sign with a name.
+Goal of this message: simply ask them for a quotation for uPVC windows for the house. Keep it simple. Do NOT include the size list, any link, price, or a file.
+Language: Manglish only (Malayalam written in English letters, mixed with common English words like uPVC, window, quotation, house), e.g. the way people type "quotation tharamo", "venam", "onnu ayakkamo".
+Style: like a real person typing on a phone. 1 short sentence (or 2 very short), 6 to 20 words. Vary everything: greeting or no greeting, word order, which detail you mention, punctuation, capitalisation. No emojis or at most one, no em dashes. Any time greeting must match the time given. Never sound like a template, ad or bot. Do not sign with a name.
 Output only the message text.`;
 
 async function writeStarter(s, extra = []) {
@@ -143,7 +144,7 @@ async function tick() {
 // ---- replies ----
 function replyPrompt(s) {
   return `You are replying on WhatsApp for Roshan Shaji, who is building his house at ${cfg.site}, Kerala, and is collecting quotations for uPVC windows. This chat is with "${s.name || 'a uPVC supplier'}", who got a short first message from us asking if they can quote.
-Write as Roshan's side ("we", "my house"), short and natural, like a real Kerala customer on WhatsApp. Mirror their language (English, Malayalam or Manglish). 1 to 3 short lines, no lists or headings. A blank line splits two bubbles.
+Write as Roshan's side ("we", "my house"), short and natural, like a real Kerala customer on WhatsApp. Write in Manglish (Malayalam in English letters) by default; if they write in English or Malayalam script, mirror them. 1 to 3 short lines, no lists or headings. A blank line splits two bubbles.
 
 YOUR GOAL: get a written, itemised quotation for the windows in the RFQ below.
 - As soon as they show interest or ask for details/sizes/drawings, call send_rfq (it sends the RFQ PDF, only once) and ask them to fill in their rate for each item and send their quotation as a PDF here.
@@ -290,6 +291,9 @@ export async function startSuppliers(deps) {
   const [tName, tPhone] = (process.env.SUPPLIER_TEST || '').split('|');
   if (tPhone) console.log('Test supplier', addSuppliers([{ name: tName, phone: tPhone, test: true }]));
   // SUPPLIER_START=<any id>: start the campaign once for that id (so a restart does not restart it).
+  // SUPPLIER_NEXT_NOW=<id>: send the next starter right away (once per id).
+  const nowId = process.env.SUPPLIER_NEXT_NOW || '';
+  if (nowId && !store.isDone(`supplier-now:${nowId}`)) { store.markDone(`supplier-now:${nowId}`); setCamp({ active: true, nextAt: Date.now() + 60000 }); }
   const startId = process.env.SUPPLIER_START || '';
   if (startId && !store.isDone(`supplier-start:${startId}`)) {
     store.markDone(`supplier-start:${startId}`);
