@@ -1,10 +1,11 @@
-import { config, assertConfig, hasOrders } from './config.js';
+import { config, assertConfig } from './config.js';
 import { startWhatsApp, notifyOwner, sendText, sendDocument, forwardToOwner, exists, link, ownerJid, download } from './whatsapp.js';
 import { startSuppliers } from './suppliers.js';
 import { startWeb } from './web.js';
 import { startProactive } from './proactive.js';
-import { loadCatalogue, salesSummary } from './woo.js';
+import { loadCatalogue } from './woo.js';
 import { store } from './store.js';
+import { dailyReport, morningPlan } from './growth.js';
 
 assertConfig();
 process.on('unhandledRejection', (e) => console.error('unhandled', e?.message || e));
@@ -25,18 +26,19 @@ await startWhatsApp();
 startProactive({ sendText, exists });
 await startSuppliers({ sendText, sendDocument, exists, notifyOwner, forwardToOwner, ownerJid, download, connected: () => link.connected });
 
-// Daily report to Roshan at REPORT_HOUR, India time.
+// 9 PM report and the morning selling plan to Roshan, India time.
 let lastReport = '';
+let lastPlan = '';
 setInterval(async () => {
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const day = now.toDateString();
-  if (now.getHours() !== config.reportHour || lastReport === day || !link.connected) return;
-  lastReport = day;
-  const e = store.statsToday();
-  let sales = 'Sales: add the WooCommerce key to see orders here.';
-  if (hasOrders()) {
-    try { const s = await salesSummary(1); sales = `Paid orders (24h): ${s.paid_orders}, revenue Rs ${s.revenue_inr}, unpaid/failed: ${s.unpaid_or_failed}`; } catch {}
+  if (!link.connected) return;
+  if (now.getHours() === config.reportHour && lastReport !== day) {
+    lastReport = day;
+    try { await notifyOwner(await dailyReport()); } catch (e) { console.error('daily report', e.message); }
   }
-  const sent = Object.entries(e).filter(([k]) => k.startsWith('sent_')).map(([k, v]) => `${k.slice(5)} ${v}`).join(', ') || 'none';
-  await notifyOwner(`Daily report\n${sales}\nWhatsApp messages in: ${e.whatsapp_messages || 0}\nWebsite chats: ${e.web_messages || 0}\nPersonal/other chats ignored: ${e.ignored_chats || 0}\nHanded to you: ${e.handoffs || 0}\nAuto messages sent: ${sent}\nQueue: ${store.queue().length}`).catch(() => {});
+  if (process.env.MORNING_PLAN !== 'false' && now.getHours() === 9 && now.getMinutes() >= 30 && lastPlan !== day) {
+    lastPlan = day;
+    try { await notifyOwner(`Today's selling plan\n${await morningPlan()}`); } catch (e) { console.error('morning plan', e.message); }
+  }
 }, 5 * 60 * 1000);

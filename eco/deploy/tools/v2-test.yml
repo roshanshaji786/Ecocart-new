@@ -1,0 +1,26 @@
+# One-off: run Eco's scenario tests on the VPS with the real DeepSeek key and catalogue,
+# fake orders, no WhatsApp and a throwaway data folder. Results are in this project's logs.
+services:
+  test:
+    image: node:22-bookworm
+    restart: "no"
+    working_dir: /srv
+    env_file:
+      - /docker/deepseek-gateway/.env
+    environment:
+      CODE_REF: "${CODE_REF:?set CODE_REF}"
+      DEEPSEEK_MODEL: "deepseek-flash"
+      DEEPSEEK_FALLBACK_MODEL: "deepseek-v4-pro"
+      WOO_URL: "https://ecocart.co.in"
+      DATA_DIR: "/tmp/ecotest"
+      TZ: "Asia/Kolkata"
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        mkdir -p /srv/code && cd /srv/code
+        node -e "fetch('https://codeload.github.com/roshanshaji786/Ecocart-new/tar.gz/'+process.env.CODE_REF).then(r=>{if(!r.ok)throw new Error('download '+r.status);return r.arrayBuffer()}).then(b=>require('fs').writeFileSync('/tmp/code.tgz',Buffer.from(b)))"
+        tar xzf /tmp/code.tgz --strip-components=1
+        cd eco && npm ci --omit=dev --no-audit --no-fund >/dev/null
+        node test/scenarios.js

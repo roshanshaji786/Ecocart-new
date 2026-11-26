@@ -13,6 +13,7 @@
     '#eco-box.open{display:flex}#eco-head{background:#2e7d32;color:#fff;padding:12px 14px;font-weight:600}#eco-head small{display:block;font-weight:400;opacity:.85}' +
     '#eco-log{flex:1;overflow-y:auto;padding:12px;background:#f4f7f2}.eco-m{max-width:85%;margin:0 0 8px;padding:8px 11px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}' +
     '.eco-u{margin-left:auto;background:#dcf3d6}.eco-b{background:#fff;border:1px solid #e3e8e0}.eco-m a{color:#1b5e20}' +
+    '.eco-cards{display:flex;gap:8px;margin:0 0 8px;overflow-x:auto}.eco-card{flex:0 0 140px;background:#fff;border:1px solid #e3e8e0;border-radius:10px;overflow:hidden;text-decoration:none;color:#1b1b1b}.eco-card img{width:100%;height:96px;object-fit:cover;display:block;background:#eef2ec}.eco-card b{display:block;font-size:12.5px;line-height:1.3;padding:6px 8px 0}.eco-card span{display:block;font-size:12.5px;color:#1b5e20;font-weight:600;padding:2px 8px 8px}' +
     '#eco-form{display:flex;border-top:1px solid #e3e8e0}#eco-in{flex:1;border:0;padding:12px;font:inherit;outline:none;color:#1b1b1b;background:#fff}#eco-send{border:0;background:#2e7d32;color:#fff;padding:0 16px;font:inherit;cursor:pointer}';
   var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
@@ -28,6 +29,18 @@
     d.innerHTML = esc(text).replace(/(https?:\/\/[^\s)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
     log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
   }
+  function cards(list) {
+    if (!list || !list.length) return;
+    var w = document.createElement('div'); w.className = 'eco-cards';
+    list.slice(0, 2).forEach(function (p) {
+      if (!/^https:\/\//.test(p.url || '')) return;
+      var a = document.createElement('a'); a.className = 'eco-card'; a.href = p.url; a.target = '_blank'; a.rel = 'noopener';
+      a.innerHTML = (/^https:\/\//.test(p.image || '') ? '<img loading="lazy" alt="" src="' + esc(p.image) + '">' : '') +
+        '<b>' + esc(p.name || '') + '</b>' + (p.price ? '<span>Rs ' + esc(String(p.price)) + '</span>' : '');
+      w.appendChild(a);
+    });
+    if (w.childNodes.length) { log.appendChild(w); log.scrollTop = log.scrollHeight; }
+  }
   btn.onclick = function () {
     box.classList.toggle('open');
     if (!log.childNodes.length) add('Hi! I am Eco 🌿 Looking for a gift, Kerala honey or something plastic-free? New here? Use FIRST50 for Rs 50 off above Rs 499.', 'b');
@@ -38,12 +51,14 @@
     var text = input.value.trim(); if (!text) return;
     input.value = ''; add(text, 'u');
     var wait = add('Eco is typing...', 'b');
+    var slow = setTimeout(function () { wait.textContent = 'Eco is checking the catalogue...'; }, 2500);
     fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, session: session }) })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        wait.remove(); if (d.session) { session = d.session; try { localStorage.setItem(KEY, session); } catch (e) {} }
+        clearTimeout(slow); wait.remove(); if (d.session) { session = d.session; try { localStorage.setItem(KEY, session); } catch (e) {} }
         add(d.reply || 'Sorry, please try again.', 'b');
+        cards(d.products);
       })
-      .catch(function () { wait.remove(); add('Connection problem. WhatsApp us at +91 70120 45854.', 'b'); });
+      .catch(function () { clearTimeout(slow); wait.remove(); add('Connection problem. WhatsApp us at +91 70120 45854.', 'b'); });
   };
 })();

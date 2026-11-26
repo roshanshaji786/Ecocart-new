@@ -3,6 +3,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import QRCode from 'qrcode';
 import { config } from './config.js';
+import { db } from './db.js';
 import { customerTurn } from './agent.js';
 import { notifyOwner, link, wakeLinking } from './whatsapp.js';
 import { store } from './store.js';
@@ -53,12 +54,28 @@ ${qrImg ? `<p><b>${link.code ? 'Option 2' : 'Scan'}:</b> WhatsApp &gt; Linked de
     if (!/^[a-f0-9]{32}$/.test(session)) session = crypto.randomBytes(16).toString('hex');
     if (!text) return res.status(400).json({ reply: '', session });
     try {
-      const reply = await customerTurn({ chatId: `web:${session}`, channel: 'the ecocart.co.in website chat', text, notifyOwner });
-      res.json({ reply: reply || 'Thanks! Roshan will get back to you soon.', session });
+      const cards = [];
+      const reply = await customerTurn({ chatId: `web:${session}`, channel: 'the ecocart.co.in website chat', text, notifyOwner, cards });
+      res.json({ reply: reply || 'Thanks! Roshan will get back to you soon.', session, products: cards });
     } catch (e) {
       console.error('web chat', e.message);
       res.json({ reply: 'Sorry, I had a hiccup. Please WhatsApp us at +91 70120 45854.', session });
     }
+  });
+
+  // Cart events from a future cart-tracking plugin or webhook (same shared secret as the chat proxy).
+  // Stored only; recovery messages stay off until CART_RECOVERY_LIVE=true.
+  app.post('/events/cart', (req, res) => {
+    if (!config.proxySecret || req.headers['x-eco-proxy'] !== config.proxySecret) return res.status(403).json({ ok: false });
+    const e = req.body || {};
+    const kinds = ['cart_created', 'item_added', 'cart_updated', 'checkout_started', 'cart_abandoned', 'order_completed'];
+    if (!e.cart_id || !kinds.includes(e.event)) return res.status(400).json({ ok: false, error: 'cart_id and a valid event are required' });
+    db.log('cart_events', {
+      cart_id: String(e.cart_id).slice(0, 64), event: e.event, phone: String(e.phone || '').replace(/\D/g, '').slice(-12),
+      name: String(e.name || '').slice(0, 40), items: String(e.items || '').slice(0, 300), value: Number(e.value) || 0,
+      url: String(e.url || '').slice(0, 300), recovered: e.event === 'order_completed',
+    }, 5000);
+    res.json({ ok: true });
   });
 
   app.listen(config.webPort, config.webHost, () => console.log(`HTTP on ${config.webHost}:${config.webPort}`));

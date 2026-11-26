@@ -1,10 +1,14 @@
 // Tool sets and one conversation turn for a customer or for Roshan.
-import { runAgent, classify } from './llm.js';
+import { runAgent, classify, PRO } from './llm.js';
 import { customerPrompt, ownerPrompt, CLASSIFY_PROMPT } from './prompt.js';
 import { store, digitsOf } from './store.js';
 import { hasOrders } from './config.js';
 import * as woo from './woo.js';
 import { supplierOwnerTools } from './suppliers.js';
+import { findProducts, productById, productsInText, checkOffer } from './merch.js';
+import { profileFor, noteInbound, noteOutbound, updateProfile, scheduleFollowUp, summary, styleText } from './shoppers.js';
+import { db } from './db.js';
+import * as growth from './growth.js';
 
 const obj = (props, required = []) => ({ type: 'object', properties: props, required });
 const str = (description) => ({ type: 'string', description });
@@ -16,15 +20,21 @@ export const toJid = (phone) => {
 
 function productTools() {
   return {
-    search_products: {
-      description: 'Search the live EcoCart catalogue (name, price in rupees, stock, link, summary).',
-      parameters: obj({ query: str('What they want, e.g. "honey gift", "coconut oil 1 litre", "christmas hamper"') }, ['query']),
-      run: ({ query }) => woo.searchProducts(query),
+    find_products: {
+      description: 'Find in-stock products that fit. Returns name, price, link, tier, gift fit, occasions, sustainability facts from the product page, and an upsell. Pass budget_max/occasion/gift when known.',
+      parameters: obj({
+        query: str('What they want, e.g. "honey gift", "coconut oil 1 litre", "christmas hamper"'),
+        budget_max: { type: 'integer', description: 'Max rupees, if they gave a budget' },
+        budget_min: { type: 'integer' },
+        occasion: str('christmas, wedding, housewarming, birthday, corporate, onam...'),
+        gift: { type: 'boolean' }, sustainable: { type: 'boolean' }, edible: { type: 'boolean' },
+      }, ['query']),
+      run: (a) => findProducts(a),
     },
     product_details: {
-      description: 'Full details of one product by id (what is inside, description, image).',
+      description: 'Full details of one product by id (what is inside, description, image, sustainability facts).',
       parameters: obj({ id: { type: 'integer' } }, ['id']),
-      run: ({ id }) => woo.getProduct(id),
+      run: ({ id }) => productById(id),
     },
     list_categories: {
       description: 'Product categories with counts, to know what the shop sells.',
@@ -40,22 +50,50 @@ export async function isShopper(text) {
   try { return !/^NOT\b/.test(await classify(CLASSIFY_PROMPT, text)); } catch { return true; }
 }
 
-export async function customerTurn({ chatId, phone = '', name = '', channel, text, notifyOwner }) {
+export async function customerTurn({ chatId, phone = '', name = '', channel, text, notifyOwner, cards }) {
   store.push(chatId, 'user', text);
   store.bump(channel === 'WhatsApp' ? 'whatsapp_messages' : 'web_messages');
+  const pr = profileFor(chatId, { phone, name, channel });
+  const det = noteInbound(pr, text);
   if (/^\s*(stop|unsubscribe)\s*$/i.test(text) && phone) {
     store.optOut(phone);
+    pr.opted_out = true; pr.follow_up_due = 0; db.metric('opt_outs');
     const t = 'Done, you won\'t get any more offers from us. You can still message here any time 🙂';
     store.push(chatId, 'assistant', t);
     return t;
   }
+  if (det.intents.includes('not_interested')) pr.follow_up_due = 0;
   let silent = false;
   const tools = {
     ...productTools(),
+    check_offer: {
+      description: 'Check FIRST50 eligibility, shipping, payable total and the Christmas order-by date for a cart total.',
+      parameters: obj({ cart_total: { type: 'integer', description: 'Cart value in rupees before shipping' } }, ['cart_total']),
+      run: ({ cart_total }) => checkOffer({ cart_total, phone: phone || pr.phone }),
+    },
+    update_shopper: {
+      description: 'Save what you learned about this shopper so Eco remembers next time (any field optional).',
+      parameters: obj({
+        budget: str('e.g. Rs 1000'), occasion: str(''), recipient: str(''), quantity: str(''), language: str('en, ml or manglish'),
+        buying_stage: str('browse, considering, ready or purchased'), interests: { type: 'array', items: { type: 'string' } },
+        viewed_products: { type: 'array', items: { type: 'string' } }, objection: str('price, delivery time, trust, quality, need time...'),
+        note: str('Anything useful for the next chat'), lead_score_change: { type: 'integer', description: '-30 to 30' },
+      }),
+      run: (a) => ({ profile: updateProfile(pr, a) }),
+    },
+    create_follow_up: {
+      description: 'Schedule ONE polite follow-up when the shopper asks to be reminded or wants time to think. WhatsApp only.',
+      parameters: obj({ hours: { type: 'integer', description: 'Hours from now, at least 6 unless they asked for sooner' }, reason: str('What to follow up about') }, ['reason']),
+      run: ({ hours = 24, reason }) => (phone ? scheduleFollowUp(pr, { hours, reason }) : { error: 'Website chat: offer to continue on WhatsApp +91 70121 45854 instead.' }),
+    },
     order_status: {
       description: 'Look up an order by order number. On the website also pass the phone used on the order.',
       parameters: obj({ order_id: { type: 'integer' }, phone: str('Phone on the order (website only)') }, ['order_id']),
-      run: ({ order_id, phone: p }) => woo.orderStatus(order_id, p || phone),
+      run: async ({ order_id, phone: p }) => {
+        const r = await woo.orderStatus(order_id, p || phone);
+        if (r?.found && p && !phone) profileFor(chatId, { phone: p, channel }); // website shopper identified: share memory
+        return r;
+      },
     },
     my_orders: {
       description: "This WhatsApp customer's recent orders (uses their phone automatically).",
@@ -63,25 +101,35 @@ export async function customerTurn({ chatId, phone = '', name = '', channel, tex
       run: () => (phone ? woo.ordersByPhone(phone) : { error: 'Ask for the order number and the phone used.' }),
     },
     hand_to_owner: {
-      description: 'Bring in Roshan (human). Eco stops replying in this chat until Roshan resumes it.',
-      parameters: obj({ reason: str('Short reason, e.g. "wants 50 custom hampers for office"') }, ['reason']),
-      run: async ({ reason }) => {
+      description: 'Bring in Roshan (human) for complaints, refunds, damage, bulk/corporate/custom orders, angry customers, unverifiable questions and high-value leads. Eco stops replying in this chat until Roshan resumes it.',
+      parameters: obj({ reason: str('Short reason, e.g. "wants 50 custom hampers for office by 20 Dec"'), recommended_action: str('What Roshan should do next') }, ['reason']),
+      run: async ({ reason, recommended_action = '' }) => {
         store.pauseChat(chatId, reason);
-        store.bump('handoffs');
-        await notifyOwner?.(`Needs you: ${channel}${phone ? ` +${phone}` : ''}${name ? ` (${name})` : ''}\nWhy: ${reason}\nThey said: "${text.slice(0, 300)}"\nWhen done, send "hey eco resume ${phone || chatId}".`);
+        store.bump('handoffs'); db.metric('handoffs');
+        pr.handoff = true;
+        await notifyOwner?.(`Needs you: ${channel}${phone ? ` +${phone}` : ''}${name ? ` (${name})` : ''}\nWhy: ${reason}${recommended_action ? `\nSuggested: ${recommended_action}` : ''}\nShopper: ${summary(pr)}\nThey said: "${text.slice(0, 300)}"\nWhen done, send "hey eco resume ${phone || chatId}".`);
         return { ok: true, tell_customer: 'Roshan will message personally soon.' };
       },
     },
     not_a_customer: {
       description: 'This person is not a shopper (personal chat, Darts AI/website business, spam). Eco stays silent in this chat.',
       parameters: obj({ reason: str('Short reason') }, ['reason']),
-      run: ({ reason }) => { store.setChatKind(chatId, 'other'); silent = true; return { ok: true, reason }; },
+      run: ({ reason }) => { store.setChatKind(chatId, 'other'); silent = true; pr.lead_score = 0; return { ok: true, reason }; },
     },
   };
+  const detected = [det.intents.join(', '), det.objection && `objection: ${det.objection}`].filter(Boolean).join('; ');
+  const usePro = pr.lead_score >= 70 || det.intents.some((i) => ['bulk', 'complaint'].includes(i));
   const history = store.history(chatId).map(({ role, content }) => ({ role, content }));
-  const { text: reply } = await runAgent(customerPrompt(channel, { name, phone }), history, tools);
+  const system = customerPrompt(channel, { name, phone, profile: summary(pr), detected, style: styleText(pr.variant) });
+  const { text: reply } = await runAgent(system, history, tools, usePro ? { model: PRO() } : {});
   if (silent) return '';
-  if (reply) store.push(chatId, 'assistant', reply);
+  if (reply) {
+    store.push(chatId, 'assistant', reply);
+    let recommended = [];
+    try { recommended = await productsInText(reply); } catch {}
+    noteOutbound(pr, reply, recommended);
+    if (Array.isArray(cards)) for (const p of recommended.slice(0, 2)) cards.push({ name: p.name, price: p.price, url: p.url, image: p.image });
+  }
   return reply;
 }
 
@@ -173,11 +221,46 @@ export async function ownerTurn({ text, sendTo, broadcast }) {
     broadcast_confirm: {
       description: 'Queue the prepared broadcast. Only after Roshan said yes to the preview.',
       parameters: obj({}),
-      run: () => broadcast.confirm(),
+      run: () => { db.log('broadcast_history', { draft: store.broadcastDraft()?.id, message: store.broadcastDraft()?.message, recipients: store.broadcastDraft()?.people?.length }); return broadcast.confirm(); },
+    },
+    growth_snapshot: {
+      description: 'Everything needed for strategy questions: sales today/7d, best sellers, Eco funnel metrics, top recommended products, top objections, message-style results, high-intent leads, reorder candidates, bundles in stock, festival calendar.',
+      parameters: obj({}),
+      run: () => growth.growthSnapshot(),
+    },
+    growth_plan: {
+      description: 'Write today\'s selling plan now (what to push, who to follow up, which offer, a broadcast idea).',
+      parameters: obj({}),
+      run: async () => ({ plan: await growth.morningPlan() }),
+    },
+    high_intent_leads: {
+      description: 'Shoppers most likely to buy, with score, stage, budget, occasion, what was recommended and objections.',
+      parameters: obj({ limit: { type: 'integer' } }),
+      run: ({ limit = 10 }) => growth.highIntentLeads(limit),
+    },
+    reorder_candidates: {
+      description: 'Past customers whose consumables (honey, ghee, oil, spices...) are likely running low now.',
+      parameters: obj({}),
+      run: () => growth.reorderCandidates(),
+    },
+    best_sellers: {
+      description: 'Best-selling products by revenue over N days.',
+      parameters: obj({ days: { type: 'integer', description: 'Default 7' } }),
+      run: ({ days = 7 }) => growth.bestSellers(days),
+    },
+    abandoned_carts: {
+      description: 'Abandoned carts (only once a cart-tracking source sends events to Eco).',
+      parameters: obj({}),
+      run: () => growth.abandonedCarts(),
+    },
+    analyze_chat: {
+      description: 'A shopper profile and the last 30 messages of their chat, to analyse what happened.',
+      parameters: obj({ phone: str('Phone') }, ['phone']),
+      run: ({ phone }) => growth.analyzeChat(phone),
     },
   };
   const history = store.history('owner').slice(-10).map(({ role, content }) => ({ role, content }));
   if (!history.length || history[history.length - 1].content !== text) history.push({ role: 'user', content: text });
-  const { text: reply } = await runAgent(ownerPrompt(), history, tools);
+  const { text: reply } = await runAgent(ownerPrompt(), history, tools, { model: PRO(), maxTokens: 4000 });
   return reply;
 }

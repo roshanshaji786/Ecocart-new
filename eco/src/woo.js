@@ -12,7 +12,10 @@ async function getJson(url, headers = {}) {
   return res.json();
 }
 
+export const testHooks = { wc: null }; // test/scenarios.js swaps in fake orders
+
 async function wc(pathname, params = {}) {
+  if (testHooks.wc) return testHooks.wc(pathname, params);
   if (!hasOrders()) throw new Error('orders_not_connected');
   const url = new URL(`${config.woo.url}/wp-json/wc/v3/${pathname}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);

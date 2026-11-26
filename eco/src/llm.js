@@ -2,20 +2,33 @@
 import { config } from './config.js';
 
 let badModel = '';
-// deepseek-flash reasons before it answers, and the reasoning counts toward max_tokens: a small cap
-// returns an empty answer. Keep caps generous (they are a ceiling, not what is billed).
-export async function complete(messages, tools, { maxTokens = 2500, temperature = 0.7 } = {}) {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+export const PRO = () => config.deepseek.fallback || config.deepseek.model;
+
+// model: optional override (e.g. Pro for owner strategy). Falls back to the other model on model errors,
+// retries with backoff on rate limits, server errors and network failures, and never throws an HTML page.
+export async function complete(messages, tools, { maxTokens = 2500, temperature = 0.7, model: want } = {}) {
   let lastErr;
-  for (const model of [config.deepseek.model, config.deepseek.fallback].filter((m) => m && m !== badModel)) {
-    const res = await fetch(`${config.deepseek.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.deepseek.key}` },
-      body: JSON.stringify({ model, messages, ...(tools?.length ? { tools } : {}), temperature, max_tokens: maxTokens }),
-    });
-    if (res.ok) return (await res.json()).choices[0].message;
-    lastErr = new Error(`DeepSeek ${model} ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    if (![400, 404, 422].includes(res.status)) break; // only fall back on model errors
-    if (model === config.deepseek.model) { badModel = model; console.error(lastErr.message); }
+  const models = [...new Set([want, config.deepseek.model, config.deepseek.fallback].filter((m) => m && m !== badModel))];
+  for (const model of models) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let res;
+      try {
+        res = await fetch(`${config.deepseek.baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.deepseek.key}` },
+          body: JSON.stringify({ model, messages, ...(tools?.length ? { tools } : {}), temperature, max_tokens: maxTokens }),
+          signal: AbortSignal.timeout(90000),
+        });
+      } catch (e) {
+        lastErr = e; await sleep(1500 * (attempt + 1) ** 2); continue;
+      }
+      if (res.ok) return (await res.json()).choices[0].message;
+      lastErr = new Error(`DeepSeek ${model} ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      if ([429, 500, 502, 503, 504].includes(res.status)) { await sleep(1500 * (attempt + 1) ** 2); continue; }
+      if ([400, 404, 422].includes(res.status) && model === config.deepseek.model && !tools?.length) { badModel = model; console.error(lastErr.message); }
+      break; // try the next model
+    }
   }
   throw lastErr;
 }
@@ -34,8 +47,8 @@ export async function runAgent(system, history, tools, opts = {}) {
   const used = [];
   const said = []; // text the model wrote alongside tool calls ("let me check…", a first recommendation)
   const finish = (t) => ({ text: [...said, (t || '').trim()].filter(Boolean).join('\n\n'), used });
-  for (let round = 0; round < 6; round++) {
-    const msg = await complete(messages, defs, opts);
+  for (let round = 0; round < (opts.rounds || 8); round++) {
+    const msg = await complete(messages, defs, { maxTokens: opts.maxTokens, model: opts.model, temperature: opts.temperature });
     if (!msg.tool_calls?.length) return finish(msg.content);
     if (msg.content?.trim() && said.length < 1) said.push(msg.content.trim());
     messages.push({ role: 'assistant', content: msg.content || '', tool_calls: msg.tool_calls });

@@ -65,6 +65,7 @@ export const store = {
 
   isDone(key) { return !!state.done[key]; },
   markDone(key) { state.done[key] = Date.now(); save(); },
+  doneAt(key) { return state.done[key] || 0; },
 
   queue() { return state.queue; },
   enqueue(item) {

@@ -45,6 +45,10 @@ services:
       SUPPLIER_GAP_MIN: "${SUPPLIER_GAP_MIN:-13}"
       SUPPLIER_GAP_MAX: "${SUPPLIER_GAP_MAX:-18}"
       RFQ_URL: "${RFQ_URL:-}"
+      # Eco v2 switches.
+      FOLLOWUPS_ENABLED: "${FOLLOWUPS_ENABLED:-true}"
+      MORNING_PLAN: "${MORNING_PLAN:-true}"
+      CART_RECOVERY_LIVE: "${CART_RECOVERY_LIVE:-false}"
       RFQ_TEXT_URL: "${RFQ_TEXT_URL:-}"
     volumes:
       - ecodata:/data
