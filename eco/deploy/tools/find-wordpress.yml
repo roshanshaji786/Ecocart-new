@@ -1,20 +1,7 @@
-# One-off, read-only: shows how ecocart.co.in's WordPress runs on the VPS (no passwords printed).
+# One-off, read-only: prints ecocart.co.in wp-config DB host/name/prefix (never passwords).
 services:
   peek:
     image: alpine:3
     volumes:
-      - /srv/sites:/host/sites:ro
-      - /etc/systemd/system:/host/systemd:ro
-    command:
-      - sh
-      - -c
-      - |
-        echo "== /srv/sites =="; ls /host/sites
-        echo "== ecocart.co.in =="; ls -la /host/sites/ecocart.co.in | head -40
-        echo "== compose/service files mentioning 18114 =="
-        grep -rls "18114" /host/sites /host/systemd 2>/dev/null | head
-        echo "== wp-config (non-secret lines) =="
-        for c in $(find /host/sites/ecocart.co.in -maxdepth 4 -name wp-config.php 2>/dev/null); do echo "--- $$c"; grep -nE "DB_NAME|DB_HOST|table_prefix|WP_HOME|WP_SITEURL" "$$c"; done
-        echo "== 18114 config lines =="
-        for c in $(grep -rls "18114" /host/sites /host/systemd 2>/dev/null | head -5); do echo "--- $$c"; grep -nE "18114|image|volumes|/var/www|container_name|DB_HOST|WORDPRESS_DB_HOST|ExecStart|network" "$$c" | grep -viE "password|secret|key" | head -30; done
-        echo "== done =="
+      - /srv/sites/ecocart.co.in/wp-config.php:/host/wp-config.php:ro
+    command: ["sh", "-c", "grep -nE \"DB_NAME|DB_HOST|table_prefix|WP_HOME|WP_SITEURL\" /host/wp-config.php; echo '== done =='"]

@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import fs from 'node:fs';
 
 const list = (v) => (v || '').split(',').map((s) => s.replace(/\D/g, '')).filter(Boolean);
 const num = (v, d) => (v === undefined || v === '' ? d : Number(v));
@@ -39,6 +40,12 @@ export const config = {
     reorderNudges: bool(process.env.REORDER_NUDGES, true),
   },
 };
+
+// The WooCommerce key can also come from a file on the server (written by deploy/tools/make-woo-key.php).
+try {
+  const f = JSON.parse(fs.readFileSync(process.env.WOO_KEY_FILE || 'data/woo.json', 'utf8'));
+  if (!config.woo.ck && f.consumer_key) { config.woo.ck = f.consumer_key; config.woo.cs = f.consumer_secret; }
+} catch {}
 
 export const hasOrders = () => !!((config.woo.ck && config.woo.cs) || (config.woo.user && config.woo.pass));
 

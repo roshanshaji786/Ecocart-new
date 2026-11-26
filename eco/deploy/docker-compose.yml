@@ -31,6 +31,7 @@ services:
       PROACTIVE_HOURS_START: "9"
       PROACTIVE_HOURS_END: "20"
       DATA_DIR: "/data/state"
+      WOO_KEY_FILE: "/data/woo.json"
       AUTH_DIR: "/data/auth"
       TZ: "Asia/Kolkata"
     volumes:
