@@ -1,0 +1,19 @@
+# One-off, read-only: shows where ecocart.co.in's WordPress is served from on the VPS.
+services:
+  peek:
+    image: alpine:3
+    volumes:
+      - /:/host:ro
+    command:
+      - sh
+      - -c
+      - |
+        echo "== web server configs mentioning ecocart =="
+        grep -rls "ecocart" /host/etc/nginx /host/etc/caddy /host/etc/apache2 /host/etc/httpd /host/usr/local/lsws/conf /host/etc/openlitespeed /host/opt 2>/dev/null | grep -v node_modules | head -40
+        echo "== listening proxy hints =="
+        ls /host/etc/nginx/sites-enabled /host/etc/nginx/conf.d /host/usr/local/lsws/conf/vhosts 2>/dev/null
+        echo "== wp-config.php files =="
+        find /host/var/www /host/home /host/srv /host/opt /host/root /host/docker /host/var/lib/docker/volumes -maxdepth 6 -name wp-config.php 2>/dev/null | head -40
+        echo "== server blocks for ecocart =="
+        for f in $(grep -rls "ecocart.co.in" /host/etc/nginx /host/usr/local/lsws/conf /host/etc/caddy 2>/dev/null); do echo "--- $f"; grep -nE "server_name|root|proxy_pass|listen|vhRoot|docRoot|reverse_proxy" "$f" | head -30; done
+        echo "== done =="
