@@ -1,13 +1,20 @@
-# One-off, read-only: shows how nginx serves ecocart.co.in on the VPS.
+# One-off, read-only: shows how ecocart.co.in's WordPress runs on the VPS (no passwords printed).
 services:
   peek:
     image: alpine:3
     volumes:
-      - /etc/nginx:/host/nginx:ro
+      - /srv/sites:/host/sites:ro
+      - /etc/systemd/system:/host/systemd:ro
     command:
       - sh
       - -c
       - |
-        echo "== nginx site ecocart.co.in =="
-        grep -nE "server_name|root |proxy_pass|fastcgi_pass|listen|include|location" /host/nginx/sites-enabled/ecocart.co.in
+        echo "== /srv/sites =="; ls /host/sites
+        echo "== ecocart.co.in =="; ls -la /host/sites/ecocart.co.in | head -40
+        echo "== compose/service files mentioning 18114 =="
+        grep -rls "18114" /host/sites /host/systemd 2>/dev/null | head
+        echo "== wp-config (non-secret lines) =="
+        for c in $(find /host/sites/ecocart.co.in -maxdepth 4 -name wp-config.php 2>/dev/null); do echo "--- $$c"; grep -nE "DB_NAME|DB_HOST|table_prefix|WP_HOME|WP_SITEURL" "$$c"; done
+        echo "== 18114 config lines =="
+        for c in $(grep -rls "18114" /host/sites /host/systemd 2>/dev/null | head -5); do echo "--- $$c"; grep -nE "18114|image|volumes|/var/www|container_name|DB_HOST|WORDPRESS_DB_HOST|ExecStart|network" "$$c" | grep -viE "password|secret|key" | head -30; done
         echo "== done =="
