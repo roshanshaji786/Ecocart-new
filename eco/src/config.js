@@ -27,6 +27,7 @@ export const config = {
   webHost: process.env.WEB_HOST || '0.0.0.0',
   webOrigin: process.env.WEB_ALLOWED_ORIGIN || 'https://ecocart.co.in',
   linkToken: process.env.LINK_TOKEN || '',
+  proxySecret: process.env.WEB_PROXY_SECRET || '',
   reportHour: num(process.env.REPORT_HOUR, 21),
   proactive: {
     enabled: bool(process.env.PROACTIVE_ENABLED, true),

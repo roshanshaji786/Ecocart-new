@@ -1,0 +1,24 @@
+# One-off: installs the Eco chat must-use plugin into the live ecocart.co.in WordPress on the VPS.
+# Only writes wp-content/mu-plugins/eco-chat.php. Remove that file to take Eco off the site.
+# Needs ECO_PLUGIN_REF (commit SHA) and WEB_PROXY_SECRET in this project's environment.
+services:
+  install:
+    image: alpine:3
+    environment:
+      ECO_PLUGIN_REF: "${ECO_PLUGIN_REF:?set ECO_PLUGIN_REF}"
+      WEB_PROXY_SECRET: "${WEB_PROXY_SECRET:?set WEB_PROXY_SECRET}"
+      ECO_URL: "http://93.127.206.59:8795"
+    volumes:
+      - /srv/sites/ecocart.co.in/wp-content/mu-plugins:/mu
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        wget -qO /tmp/eco-chat.php "https://raw.githubusercontent.com/roshanshaji786/Ecocart-new/$$ECO_PLUGIN_REF/eco/wordpress/eco-chat.php"
+        sed -i "s#__ECO_URL__#$$ECO_URL#; s#__ECO_SECRET__#$$WEB_PROXY_SECRET#" /tmp/eco-chat.php
+        grep -q "Plugin Name: Eco chat" /tmp/eco-chat.php
+        cp /tmp/eco-chat.php /mu/eco-chat.php
+        chown 33:33 /mu/eco-chat.php && chmod 644 /mu/eco-chat.php
+        ls -la /mu
+        echo "Installed eco-chat.php"

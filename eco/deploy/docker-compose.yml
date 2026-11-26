@@ -21,6 +21,7 @@ services:
       OWNER_NUMBERS: "917012145854,917012045854"
       IGNORE_SAVED_CONTACTS: "true"
       LINK_TOKEN: "${LINK_TOKEN:?set LINK_TOKEN}"
+      WEB_PROXY_SECRET: "${WEB_PROXY_SECRET:-}"
       WEB_PORT: "8795"
       WEB_HOST: "0.0.0.0"
       WEB_ALLOWED_ORIGIN: "https://ecocart.co.in"

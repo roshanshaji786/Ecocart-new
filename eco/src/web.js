@@ -41,6 +41,8 @@ ${qrImg ? `<p><b>${link.code ? 'Option 2' : 'Scan'}:</b> WhatsApp &gt; Linked de
     next();
   });
   app.post('/chat', async (req, res) => {
+    // Only the ecocart.co.in plugin (which knows the shared secret) may use this endpoint.
+    if (config.proxySecret && req.headers['x-eco-proxy'] !== config.proxySecret) return res.status(403).json({ reply: '' });
     const ip = String(req.headers['x-forwarded-for'] || req.ip).split(',')[0].trim();
     const now = Date.now();
     const list = (hits.get(ip) || []).filter((t) => now - t < 60000);
