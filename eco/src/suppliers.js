@@ -87,8 +87,8 @@ Goal of this message: just open the chat. Ask, in your own way, whether they can
 Style: like a real person typing on a phone. 1 or 2 short sentences, 8 to 30 words. Vary everything: greeting or no greeting, English or light Manglish (Malayalam words in English letters), word order, which detail you mention, punctuation, capitalisation. No emojis or at most one, no em dashes. Any time greeting must match the time given. Never sound like a template, ad or bot. Do not sign with a name.
 Output only the message text.`;
 
-async function writeStarter(s) {
-  const previous = store.get('supplier_starters', []).slice(-12);
+async function writeStarter(s, extra = []) {
+  const previous = [...store.get('supplier_starters', []), ...extra].slice(-12);
   const time = nowIST().toLocaleString('en-IN', { weekday: 'long', hour: 'numeric', minute: '2-digit' });
   const user = `Now: ${time} in Kerala.\nBusiness name: ${s.name || 'unknown'}${s.note ? ` (${s.note})` : ''}.
 Messages already sent to other businesses (yours must look clearly different in wording, length and opening):
@@ -211,6 +211,35 @@ export async function supplierTurn({ chatId, text, notifyOwner }) {
   return reply;
 }
 
+// ---- trial: Roshan plays a supplier in Eco's own chat; nothing goes to any real supplier ----
+const TRIAL = 'supplier-trial';
+export async function supplierTrial(text, to) {
+  if (/^reset\b/i.test(text)) { store.set(`hist:${TRIAL}`, []); return wa.sendText(to, '🧪 Trial chat reset.', { human: false }); }
+  const hist = store.get(`hist:${TRIAL}`, []);
+  hist.push({ role: 'user', content: text });
+  const say = (t) => wa.sendText(to, `🧪 ${t}`, { human: false });
+  const tools = {
+    send_rfq: { description: 'Send our RFQ PDF in this chat. Only once.', parameters: { type: 'object', properties: {} },
+      run: async () => { if (!hasPdf()) return { error: 'no PDF' }; await say('(Eco would now send the RFQ PDF:)'); await wa.sendDocument(to, fs.readFileSync(PDF), store.get('rfq_pdf_name', cfg.pdfName)); return { sent: true }; } },
+    record_quote: { description: 'Save a quote or prices the supplier gave in text, and tell Roshan.', parameters: { type: 'object', properties: { summary: { type: 'string' } }, required: ['summary'] },
+      run: async ({ summary }) => { await say(`(Roshan would get: Quote from Trial supplier: ${summary})`); return { ok: true }; } },
+    hand_to_roshan: { description: 'Ask Roshan to take over (site visit, call, negotiation, anything outside the RFQ). Eco stops replying in this chat.', parameters: { type: 'object', properties: { reason: { type: 'string' } }, required: ['reason'] },
+      run: async ({ reason }) => { await say(`(Eco would stop replying and tell Roshan: ${reason})`); return { ok: true }; } },
+    mark_not_interested: { description: 'They do not do this work or declined.', parameters: { type: 'object', properties: {} }, run: () => ({ ok: true }) },
+  };
+  const { text: reply } = await runAgent(replyPrompt({ name: 'Trial supplier' }), hist, tools, { maxTokens: 2000 });
+  hist.push({ role: 'assistant', content: reply || '' });
+  store.set(`hist:${TRIAL}`, hist.slice(-20));
+  await say(`Supplier would get:\n${reply || '(no reply)'}`);
+}
+
+export async function sendTrialStarters(to) {
+  const names = Object.values(all()).filter((s) => s.status === 'queued').slice(0, 3);
+  const made = [];
+  for (const s of names) made.push(await writeStarter(s, made));
+  await wa.sendText(to, `🧪 Supplier outreach trial. Nothing has been sent to any supplier.\n\nStarters Eco would send now (a fresh one each time, hours apart):\n${made.map((t, i) => `${i + 1}. To ${names[i].name}: "${t}"`).join('\n')}\n\nTo test replies, play the supplier here:\nhey eco trial yes we do upvc, send the sizes\n(start over: hey eco trial reset)`, { human: false });
+}
+
 // A document or photo from a supplier is usually the quotation: forward it to Roshan.
 export async function supplierFile({ chatId, message, caption }) {
   const s = supplierFor(chatId);
@@ -268,4 +297,14 @@ export async function startSuppliers(deps) {
     console.log('Supplier outreach started');
   }
   setInterval(() => tick().catch(() => {}), 60 * 1000);
+  // SUPPLIER_TRIAL=<id>: once WhatsApp is up, show Roshan sample starters in his own chat (once per id).
+  const trialId = process.env.SUPPLIER_TRIAL || '';
+  if (trialId && !store.isDone(`supplier-trial:${trialId}`)) {
+    const t = setInterval(async () => {
+      if (!wa.connected()) return;
+      clearInterval(t);
+      store.markDone(`supplier-trial:${trialId}`);
+      await sendTrialStarters(wa.ownerJid()).catch((e) => console.error('trial', e.message));
+    }, 10000);
+  }
 }

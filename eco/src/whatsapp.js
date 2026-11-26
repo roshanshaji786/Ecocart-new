@@ -9,7 +9,7 @@ import { config } from './config.js';
 import { store, digitsOf } from './store.js';
 import { customerTurn, ownerTurn, isShopper } from './agent.js';
 import { broadcast } from './proactive.js';
-import { supplierFor, supplierTurn, supplierFile, saveRfqPdf } from './suppliers.js';
+import { supplierFor, supplierTurn, supplierFile, saveRfqPdf, supplierTrial } from './suppliers.js';
 
 const log = pino({ level: process.env.BAILEYS_LOG || 'warn' });
 const WAKE = /^\s*(hey|hi|hello|ok|oi)?\s*,?\s*eco\b[\s,:!.-]*/i;
@@ -106,6 +106,7 @@ export async function exists(jid) {
 }
 
 const selfJid = () => `${link.number}@s.whatsapp.net`;
+export const ownerJid = () => { const o = config.owners[0] || link.number; return o === link.number ? selfJid() : `${o}@s.whatsapp.net`; };
 export async function notifyOwner(text) {
   const owner = config.owners[0] || link.number;
   if (owner) await sendText(owner === link.number ? selfJid() : `${owner}@s.whatsapp.net`, `🤖 Eco: ${text}`, { human: false });
@@ -149,6 +150,10 @@ async function handle(m, type) {
   }
   if (fromOwner && WAKE.test(text)) {
     const command = text.replace(WAKE, '').trim() || 'status';
+    if (/^trial\b/i.test(command)) {
+      await supplierTrial(command.replace(/^trial[\s:,-]*/i, '') || 'hi', raw).catch((e) => sendText(raw, `🤖 Eco error: ${e.message}`, { human: false }));
+      return;
+    }
     try {
       store.push('owner', 'user', command);
       const reply = await ownerTurn({ text: command, sendTo: (to, t) => sendText(to, t), broadcast });
