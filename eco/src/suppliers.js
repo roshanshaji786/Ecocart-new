@@ -55,10 +55,10 @@ function update(phone, patch) {
 export function addSuppliers(list) {
   const s = all();
   let added = 0;
-  for (const { name, phone, note } of list) {
+  for (const { name, phone, note, test } of list) {
     const k = key10(phone || '');
     if (k.length !== 10 || s[k]) continue;
-    s[k] = { name: (name || '').trim(), phone: `91${k}`, note: note || '', status: 'queued', addedAt: Date.now() };
+    s[k] = { name: (name || '').trim(), phone: `91${k}`, note: note || '', status: 'queued', addedAt: Date.now(), ...(test ? { test: true } : {}) };
     added++;
   }
   saveAll(s);
@@ -113,7 +113,10 @@ let busy = false;
 async function tick() {
   const c = camp();
   if (busy || !wa || !c.active || store.paused || Date.now() < (c.nextAt || 0) || !inHours()) return;
-  const next = Object.values(all()).find((s) => s.status === 'queued');
+  const testOnly = /^(1|true|yes)$/i.test(process.env.SUPPLIER_TEST_ONLY || '');
+  const queued = Object.values(all()).filter((s) => s.status === 'queued' && (!testOnly || s.test));
+  const next = queued.find((s) => s.test) || queued[0];
+  if (!next && testOnly) return; // trial mode: real suppliers wait until Roshan approves
   if (!next) { setCamp({ active: false }); await wa.notifyOwner('Supplier outreach: all starters sent. I will keep handling their replies.'); return; }
   busy = true;
   try {
@@ -126,7 +129,7 @@ async function tick() {
     update(next.phone, { status: 'started', startedAt: Date.now(), starter: text });
     store.set('supplier_starters', [...store.get('supplier_starters', []), text].slice(-30));
     store.bump('sent_supplier_starter');
-    const gap = rand(cfg.gapMin, cfg.gapMax) * 60000;
+    const gap = next.test ? rand(1, 3) * 60000 : rand(cfg.gapMin, cfg.gapMax) * 60000;
     setCamp({ nextAt: Date.now() + gap, lastAt: Date.now() });
     console.log(`Supplier starter sent to ${next.name || next.phone}; next in ${Math.round(gap / 60000)} min`);
   } catch (e) {
@@ -254,6 +257,9 @@ export async function startSuppliers(deps) {
   const seed = (process.env.SUPPLIERS_SEED || '').split(';').map((x) => x.split('|')).filter((x) => x[1])
     .map(([name, phone]) => ({ name, phone }));
   if (seed.length) console.log('Suppliers', addSuppliers(seed));
+  // SUPPLIER_TEST="Name|phone": a trial chat (Roshan pretending to be a supplier), sent first, 1-3 min gap.
+  const [tName, tPhone] = (process.env.SUPPLIER_TEST || '').split('|');
+  if (tPhone) console.log('Test supplier', addSuppliers([{ name: tName, phone: tPhone, test: true }]));
   // SUPPLIER_START=<any id>: start the campaign once for that id (so a restart does not restart it).
   const startId = process.env.SUPPLIER_START || '';
   if (startId && !store.isDone(`supplier-start:${startId}`)) {
