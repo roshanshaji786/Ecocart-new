@@ -1,0 +1,7 @@
+# One-off, read-only: shows the nginx cache settings used for ecocart.co.in.
+services:
+  peek:
+    image: alpine:3
+    volumes:
+      - /etc/nginx:/host/nginx:ro
+    command: ["sh", "-c", "grep -rnE 'proxy_cache|fastcgi_cache|_valid|limit_req|limit_conn' /host/nginx/nginx.conf /host/nginx/conf.d /host/nginx/sites-enabled/ecocart.co.in 2>/dev/null | head -40; echo '== done =='"]
