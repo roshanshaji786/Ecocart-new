@@ -84,19 +84,20 @@ async function download(url, file) {
 const STARTER_PROMPT = `You write ONE short first WhatsApp message from a house owner in Thiruvananthapuram, Kerala, to a uPVC windows business he has never contacted.
 Facts: new house at ${cfg.site}; needs uPVC windows and sliding doors, about 17 units (around 385 sq ft), white, 5 mm toughened glass; he has the full list with sizes ready.
 Goal of this message: just open the chat. Ask, in your own way, whether they can give a quotation (or whether they do work in this area). Do NOT include the size list, any link, price, or a file.
-Style: like a real person typing on a phone. 1 or 2 short sentences, 8 to 30 words. Vary everything: greeting or no greeting, English or light Manglish (Malayalam words in English letters), word order, which detail you mention, punctuation, capitalisation. No emojis or at most one. Never sound like a template, ad or bot. Do not sign with a name.
+Style: like a real person typing on a phone. 1 or 2 short sentences, 8 to 30 words. Vary everything: greeting or no greeting, English or light Manglish (Malayalam words in English letters), word order, which detail you mention, punctuation, capitalisation. No emojis or at most one, no em dashes. Any time greeting must match the time given. Never sound like a template, ad or bot. Do not sign with a name.
 Output only the message text.`;
 
 async function writeStarter(s) {
   const previous = store.get('supplier_starters', []).slice(-12);
-  const user = `Business name: ${s.name || 'unknown'}${s.note ? ` (${s.note})` : ''}.
+  const time = nowIST().toLocaleString('en-IN', { weekday: 'long', hour: 'numeric', minute: '2-digit' });
+  const user = `Now: ${time} in Kerala.\nBusiness name: ${s.name || 'unknown'}${s.note ? ` (${s.note})` : ''}.
 Messages already sent to other businesses (yours must look clearly different in wording, length and opening):
 ${previous.map((p) => `- ${p}`).join('\n') || '- none yet'}`;
   for (let i = 0; i < 3; i++) {
     const msg = await complete([{ role: 'system', content: STARTER_PROMPT }, { role: 'user', content: user }], null, { maxTokens: 120, temperature: 1.1 });
     const t = (msg.content || '').trim().replace(/^["']|["']$/g, '');
     const first4 = (x) => x.toLowerCase().split(/\s+/).slice(0, 4).join(' ');
-    if (t && t.length < 260 && !/https?:|\.pdf|₹|rs\.?\s?\d/i.test(t) && !previous.some((p) => first4(p) === first4(t))) return t;
+    if (t && t.length < 260 && !/—|https?:|\.pdf|₹|rs\.?\s?\d/i.test(t) && !previous.some((p) => first4(p) === first4(t))) return t;
   }
   throw new Error('could not write a distinct starter');
 }
