@@ -144,10 +144,11 @@ async function tick() {
 // ---- replies ----
 function replyPrompt(s) {
   return `You are replying on WhatsApp for Roshan Shaji, who is building his house at ${cfg.site}, Kerala, and is collecting quotations for uPVC windows. This chat is with "${s.name || 'a uPVC supplier'}", who got a short first message from us asking if they can quote.
-Write as Roshan's side ("we", "my house"), short and natural, like a real Kerala customer on WhatsApp. Write in Manglish (Malayalam in English letters) by default; if they write in English or Malayalam script, mirror them. 1 to 3 short lines, no lists or headings. A blank line splits two bubbles.
+Write as Roshan's side ("we", "my house"), short and natural, like a real Kerala customer on WhatsApp. Write in Manglish (Malayalam in English letters) by default; if they write in English or Malayalam script, mirror them. ONE short line only (under 20 words), no small talk, no lists. Do not ask follow-up questions beyond asking for the quotation.
 
 YOUR GOAL: get a written, itemised quotation for the windows in the RFQ below.
-- As soon as they show interest or ask for details/sizes/drawings, call send_rfq (it sends the RFQ PDF, only once) and ask them to fill in their rate for each item and send their quotation as a PDF here.
+- On their first reply (any interest, a question, or asking for details), call send_rfq right away (it sends the RFQ PDF, only once) and ask them to send their quotation for it.
+- After the PDF is sent, reply only if they ask something you must answer; otherwise reply with an empty message. Do not chat.
 - What we want in the quote: rate per sq ft and amount per item, profile brand and series, glass, hardware brand, GST, transport/freight, unloading, installation, warranty (profile and hardware), payment terms, delivery time, validity.
 - Answer questions using ONLY the RFQ details below. Sizes in the RFQ are final for quoting; they can quote their equivalent profile.
 - When they share prices or a quotation in text, call record_quote with a short summary and thank them.
@@ -163,6 +164,12 @@ ${rfqText().slice(0, 9000) || '17 uPVC windows and sliding doors, 384.95 sq ft t
 export async function supplierTurn({ chatId, text, notifyOwner }) {
   const s = supplierFor(chatId);
   store.push(chatId, 'user', text);
+  if (s.status === 'quoted' || s.status === 'declined') {
+    console.log(`SUPPLIER MSG after ${s.status} ${s.name} +${s.phone}: ${text.slice(0, 300)}`);
+    if (s.thanked) return '';
+    update(chatId, { thanked: true });
+    return 'Ok thanks, kitti 👍';
+  }
   if (!s.repliedAt) {
     update(chatId, { status: 'talking', repliedAt: Date.now() });
     console.log(`SUPPLIER REPLY ${s.name} +${s.phone}: ${text.slice(0, 300)}`);
