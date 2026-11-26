@@ -1,0 +1,23 @@
+# One-off: creates Eco's read-only WooCommerce REST key with wp-cli and saves it into Eco's data volume.
+# The WordPress files are mounted read-only; the only write is one row in wp_woocommerce_api_keys.
+services:
+  makekey:
+    image: wordpress:cli
+    user: root
+    volumes:
+      - /srv/sites/ecocart.co.in:/var/www/html:ro
+      - ecodata:/eco
+    networks: [wpnet]
+    command:
+      - sh
+      - -c
+      - |
+        php -r 'copy("https://raw.githubusercontent.com/roshanshaji786/Ecocart-new/6f1698848839d100a9c486b22d6a3d172aca1b42/eco/deploy/tools/make-woo-key.php", "/tmp/k.php");'
+        wp --allow-root --path=/var/www/html --skip-themes eval-file /tmp/k.php 2>&1 | grep -vE "Deprecated|Warning: (file_put|mkdir|fopen)" | tail -5
+volumes:
+  ecodata:
+    external: true
+    name: ecocart-eco_ecodata
+networks:
+  wpnet:
+    external: true

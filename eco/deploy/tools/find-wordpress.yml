@@ -1,7 +1,0 @@
-# One-off, read-only: prints ecocart.co.in wp-config DB host/name/prefix (never passwords).
-services:
-  peek:
-    image: alpine:3
-    volumes:
-      - /srv/sites/ecocart.co.in/wp-config.php:/host/wp-config.php:ro
-    command: ["sh", "-c", "grep -nE \"DB_NAME|DB_HOST|table_prefix|WP_HOME|WP_SITEURL\" /host/wp-config.php; echo '== done =='"]
