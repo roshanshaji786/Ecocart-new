@@ -1,0 +1,22 @@
+{
+  "name": "eco-sales-agent",
+  "version": "0.1.0",
+  "description": "Eco: 24/7 AI salesman for EcoCart on WhatsApp and ecocart.co.in",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node --check src/*.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "7.0.0-rc14",
+    "dotenv": "16.4.7",
+    "express": "4.21.2",
+    "pino": "9.6.0",
+    "qrcode-terminal": "0.12.0",
+    "qrcode": "1.5.4"
+  }
+}

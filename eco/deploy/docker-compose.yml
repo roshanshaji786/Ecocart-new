@@ -1,0 +1,51 @@
+# Eco on the Hostinger VPS (Docker Manager project "ecocart-eco").
+# Code: downloaded from this public GitHub repo at CODE_REF (a commit SHA), so updates are deliberate.
+# Secrets never live in git:
+#   - DEEPSEEK_API_KEY is read from the existing deepseek-gateway project's .env on the VPS.
+#   - LINK_TOKEN and the optional WOO_CONSUMER_KEY/SECRET are set in this project's environment in hPanel.
+services:
+  eco:
+    image: node:22-bookworm
+    restart: unless-stopped
+    working_dir: /srv
+    env_file:
+      - /docker/deepseek-gateway/.env
+    environment:
+      CODE_REF: "${CODE_REF:?set CODE_REF}"
+      DEEPSEEK_MODEL: "deepseek-flash"
+      DEEPSEEK_FALLBACK_MODEL: "deepseek-v4-pro"
+      WOO_URL: "https://ecocart.co.in"
+      WOO_CONSUMER_KEY: "${WOO_CONSUMER_KEY:-}"
+      WOO_CONSUMER_SECRET: "${WOO_CONSUMER_SECRET:-}"
+      WA_PHONE: "917012145854"
+      OWNER_NUMBERS: "917012145854,917012045854"
+      IGNORE_SAVED_CONTACTS: "true"
+      LINK_TOKEN: "${LINK_TOKEN:?set LINK_TOKEN}"
+      WEB_PORT: "8795"
+      WEB_HOST: "0.0.0.0"
+      WEB_ALLOWED_ORIGIN: "https://ecocart.co.in"
+      REPORT_HOUR: "21"
+      PROACTIVE_ENABLED: "true"
+      PROACTIVE_DAILY_LIMIT: "30"
+      PROACTIVE_HOURLY_LIMIT: "8"
+      PROACTIVE_HOURS_START: "9"
+      PROACTIVE_HOURS_END: "20"
+      DATA_DIR: "/data/state"
+      AUTH_DIR: "/data/auth"
+      TZ: "Asia/Kolkata"
+    volumes:
+      - ecodata:/data
+    ports:
+      - "8795:8795"
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        rm -rf /srv/code && mkdir -p /srv/code && cd /srv/code
+        node -e "fetch('https://codeload.github.com/roshanshaji786/Ecocart-new/tar.gz/'+process.env.CODE_REF).then(r=>{if(!r.ok)throw new Error('download '+r.status);return r.arrayBuffer()}).then(b=>require('fs').writeFileSync('/tmp/code.tgz',Buffer.from(b)))"
+        tar xzf /tmp/code.tgz --strip-components=1
+        cd eco && npm ci --omit=dev --no-audit --no-fund
+        exec node src/index.js
+volumes:
+  ecodata:
