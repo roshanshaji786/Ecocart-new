@@ -9,7 +9,7 @@ services:
         target: /in/queries.txt
     volumes:
       - out:/out
-    command: ["-input", "/in/queries.txt", "-results", "/out/results.csv", "-depth", "2", "-c", "2", "-lang", "en", "-exit-monitor", "3m"]
+    command: ["-input", "/in/queries.txt", "-results", "/out/results.csv", "-depth", "2", "-c", "2", "-lang", "en", "-exit-on-inactivity", "3m"]
   parse:
     image: node:22-bookworm-slim
     restart: "no"
