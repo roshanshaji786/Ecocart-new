@@ -1,0 +1,21 @@
+# One-off, read-only: prints supplier statuses and the text of saved supplier quotations to the logs.
+# Mounts Eco's data volume folder read-only (bind mount, so deleting this project never touches Eco's data).
+services:
+  readquotes:
+    image: node:22-bookworm
+    restart: "no"
+    volumes:
+      - /var/lib/docker/volumes/ecocart-eco_ecodata/_data:/data:ro
+    command:
+      - sh
+      - -c
+      - |
+        apt-get update -qq >/dev/null && apt-get install -y -qq poppler-utils >/dev/null 2>&1
+        node -e "const s=JSON.parse(require('fs').readFileSync('/data/state/state.json','utf8'));for(const x of Object.values(s.kv?.suppliers||{}))console.log('STATUS',x.name,x.phone,x.status,x.quote||'',x.rfqSentAt?'rfq_sent':'')"
+        for f in /data/state/suppliers/quotes/*; do
+          echo "=== FILE $$f"
+          pdftotext -layout "$$f" - 2>/dev/null | tr -s ' ' | grep -v '^\s*$' | tr '\n' '|' | fold -w 3500
+          echo
+        done
+        echo "=== DONE"
+        sleep 3600
