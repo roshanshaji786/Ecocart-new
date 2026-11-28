@@ -148,7 +148,8 @@ Write as Roshan's side ("we", "my house"), short and natural, like a real Kerala
 
 YOUR GOAL: get a written, itemised quotation for the windows in the RFQ below.
 - On their first reply (any interest, a question, or asking for details), call send_rfq right away (it sends the RFQ PDF, only once) and ask them to send their quotation for it.
-- After the PDF is sent, reply only if they ask something you must answer; otherwise reply with an empty message. Do not chat.
+- After the PDF is sent, reply only if they ask something you must answer; otherwise output NOTHING at all (completely empty). Never write notes like "(no reply needed)", "[silent]" or "no response": anything you write is sent to the supplier as is. Do not chat.
+- Never use em dashes or en dashes.
 - What we want in the quote: rate per sq ft and amount per item, profile brand and series, glass, hardware brand, GST, transport/freight, unloading, installation, warranty (profile and hardware), payment terms, delivery time, validity.
 - Answer questions using ONLY the RFQ details below. Sizes in the RFQ are final for quoting; they can quote their equivalent profile.
 - When they share prices or a quotation in text, call record_quote with a short summary and thank them.
@@ -204,9 +205,21 @@ export async function supplierTurn({ chatId, text, notifyOwner }) {
     },
   };
   const history = store.history(chatId).map(({ role, content }) => ({ role, content }));
-  const { text: reply } = await runAgent(replyPrompt(s), history, tools, { maxTokens: 2000 });
+  const { text: raw } = await runAgent(replyPrompt(s), history, tools, { maxTokens: 2000 });
+  const reply = cleanReply(raw);
+  if (raw && !reply) console.log(`SUPPLIER SILENT ${s.name} +${s.phone}: dropped "${String(raw).slice(0, 80)}"`);
   if (reply) store.push(chatId, 'assistant', reply);
   return reply;
+}
+
+// Never send the model's stage notes ("(no reply needed)", "[silent]", "No response.") to a supplier.
+const META = /\b(no\s+(reply|response|message)(\s+(is\s+)?(needed|required|necessary))?|empty\s+(reply|message|response)|stay(ing)?\s+silent|do\s+not\s+reply|nothing\s+to\s+(say|reply|send)|skip(ping)?\s+(reply|this))\b/i;
+export function cleanReply(t) {
+  let x = String(t || '').trim();
+  if (!x) return '';
+  x = x.split('\n').filter((l) => !/^\s*[(\[].*[)\]]\s*$/.test(l) && !(META.test(l) && l.length < 80)).join('\n').trim();
+  if (/^[(\[{<*_].*[)\]}>*_]$/s.test(x)) return ''; // whole reply wrapped like a note
+  return x.replace(/\s*[\u2014\u2013]\s*/g, ', ').replace(/,\s*,/g, ',').trim();
 }
 
 // ---- trial: Roshan plays a supplier in Eco's own chat; nothing goes to any real supplier ----
