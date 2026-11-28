@@ -217,8 +217,8 @@ const META = /\b(no\s+(reply|response|message)(\s+(is\s+)?(needed|required|neces
 export function cleanReply(t) {
   let x = String(t || '').trim();
   if (!x) return '';
-  x = x.split('\n').filter((l) => !/^\s*[(\[].*[)\]]\s*$/.test(l) && !(META.test(l) && l.length < 80)).join('\n').trim();
-  if (/^[(\[{<*_].*[)\]}>*_]$/s.test(x)) return ''; // whole reply wrapped like a note
+  x = x.split('\n').filter((l) => !/^\s*[(\[].*[)\]]\s*$/.test(l) && !(META.test(l) && l.length < 40)).join('\n').trim();
+  if (/^[(\[][^()\[\]]*[)\]]$/.test(x)) return ''; // whole reply is one (note) or [note]
   return x.replace(/\s*[\u2014\u2013]\s*/g, ', ').replace(/,\s*,/g, ',').trim();
 }
 
