@@ -2,6 +2,7 @@
 // Everything goes through one slow queue with daily/hourly caps and day-time hours,
 // because the free WhatsApp connection can be banned for bulk sending.
 import { config, hasOrders } from './config.js';
+import { cleanCustomerReply } from './clean.js';
 import { store, digitsOf } from './store.js';
 import * as woo from './woo.js';
 import { toJid } from './agent.js';
@@ -117,7 +118,7 @@ async function queueFollowUps() {
       const msg = await complete([{ role: 'system', content: FOLLOW_UP_PROMPT },
         { role: 'user', content: `Shopper: ${pr.name || 'unknown name'}; budget ${pr.budget || '?'}; occasion ${pr.occasion || '?'}; recommended ${pr.recommended_products.slice(-2).join(', ') || 'nothing yet'}; reason: ${asked ? pr.follow_up_reason : 'went quiet after showing interest'}; follow-up number ${pr.follow_ups_sent + 1}.\nChat:\n${hist}` }],
       null, { maxTokens: 1500, temperature: 0.9 });
-      text = (msg.content || '').trim();
+      text = cleanCustomerReply(msg.content);
     } catch (e) { console.error('follow-up text', e.message); }
     if (!text) continue;
     enqueue('followup', key, pr.phone, `${text}\n\n(Reply STOP if you don't want reminders.)`, { profile: pr.key, jid: chat });

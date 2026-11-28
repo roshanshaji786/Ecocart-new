@@ -9,6 +9,7 @@ import { findProducts, productById, productsInText, checkOffer } from './merch.j
 import { profileFor, noteInbound, noteOutbound, updateProfile, scheduleFollowUp, summary, styleText } from './shoppers.js';
 import { db } from './db.js';
 import * as growth from './growth.js';
+import { cleanCustomerReply } from './clean.js';
 
 const obj = (props, required = []) => ({ type: 'object', properties: props, required });
 const str = (description) => ({ type: 'string', description });
@@ -121,8 +122,9 @@ export async function customerTurn({ chatId, phone = '', name = '', channel, tex
   const usePro = pr.lead_score >= 70 || det.intents.some((i) => ['bulk', 'complaint'].includes(i));
   const history = store.history(chatId).map(({ role, content }) => ({ role, content }));
   const system = customerPrompt(channel, { name, phone, profile: summary(pr), detected, style: styleText(pr.variant) });
-  const { text: reply } = await runAgent(system, history, tools, usePro ? { model: PRO() } : {});
+  const { text: raw } = await runAgent(system, history, tools, usePro ? { model: PRO() } : {});
   if (silent) return '';
+  const reply = cleanCustomerReply(raw);
   if (reply) {
     store.push(chatId, 'assistant', reply);
     let recommended = [];
