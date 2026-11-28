@@ -317,6 +317,26 @@ export async function startSuppliers(deps) {
     console.log('Supplier outreach started');
   }
   setInterval(() => tick().catch(() => {}), 60 * 1000);
+  // SUPPLIER_SEND_RFQ="Name|phone|caption": a supplier who messaged us first. Once per phone: add them,
+  // un-pause the chat, send the RFQ PDF plus the caption, and let Eco handle their replies.
+  const [rName, rPhone, rCaption] = (process.env.SUPPLIER_SEND_RFQ || '').split('|');
+  if (rPhone && !store.isDone(`supplier-rfq:${key10(rPhone)}`)) {
+    const t = setInterval(async () => {
+      if (!wa.connected() || !hasPdf()) return;
+      clearInterval(t);
+      store.markDone(`supplier-rfq:${key10(rPhone)}`);
+      try {
+        addSuppliers([{ name: rName, phone: rPhone }]);
+        const jid = jidOf(rPhone);
+        store.resumeChat(jid);
+        store.setChatKind(jid, 'supplier');
+        await wa.sendDocument(jid, fs.readFileSync(PDF), store.get('rfq_pdf_name', cfg.pdfName));
+        if (rCaption) { await wa.sendText(jid, cleanReply(rCaption)); store.push(jid, 'assistant', rCaption); }
+        update(rPhone, { status: 'rfq_sent', startedAt: Date.now(), rfqSentAt: Date.now(), inbound: true });
+        console.log(`Supplier RFQ sent to ${rName || rPhone}`);
+      } catch (e) { console.error('supplier rfq send', e.message); }
+    }, 10000);
+  }
   // SUPPLIER_TRIAL=<id>: once WhatsApp is up, show Roshan sample starters in his own chat (once per id).
   const trialId = process.env.SUPPLIER_TRIAL || '';
   if (trialId && !store.isDone(`supplier-trial:${trialId}`)) {
